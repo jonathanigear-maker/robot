@@ -18,12 +18,48 @@ in this source file or commit the .env file to GitHub.
 """
 
 import base64
+import math
+import struct
 import subprocess
 import threading
 import time
 
 from dotenv import load_dotenv
 from openai import OpenAI
+
+
+# ---------------------------------------------------------------------------
+# Robot voice effect
+# ---------------------------------------------------------------------------
+
+# Mix a subtle electronic ring-modulation texture into Ballad's speech.
+# The resulting PCM is then passed through SoX for an +800-cent pitch shift.
+CARRIER_1_HZ = 500
+CARRIER_2_HZ = 750
+DRY = 0.75
+ROBOT = 0.35
+VOLUME = 1.2
+robot_sample_position = 0
+
+
+def robot_effect(audio):
+    global robot_sample_position
+
+    samples = struct.unpack("<" + "h" * (len(audio) // 2), audio)
+    output = []
+
+    for sample in samples:
+        t = robot_sample_position / 24000
+        carrier1 = math.sin(2 * math.pi * CARRIER_1_HZ * t)
+        carrier2 = math.sin(2 * math.pi * CARRIER_2_HZ * t)
+        carrier = (carrier1 * 0.65) + (carrier2 * 0.35)
+
+        processed = ((sample * DRY) + (sample * carrier * ROBOT)) * VOLUME
+        processed = max(-32768, min(32767, int(processed)))
+        output.append(processed)
+        robot_sample_position += 1
+
+    return struct.pack("<" + "h" * len(output), *output)
 
 
 # ---------------------------------------------------------------------------
@@ -62,33 +98,41 @@ with client.live.connect() as connection:
             "model": "gpt-live-1",
             "audio": {
                 "output": {
-                    "voice": "onyx"
+                    "voice": "ballad"
                 }
             },
             "instructions": """
 You are Robot, a small physical robot running on a Raspberry Pi.
 
-Speak with a British English accent.
+Speak in British English, with the manner of a traditional British butler.
 
-Your voice delivery should sound distinctly robotic and synthetic.
-Speak with precise, controlled timing and relatively flat intonation.
-Use a slightly clipped, mechanical cadence.
-Avoid sounding emotional or overly human.
-Keep sentences short and clear.
+Your delivery should be calm, restrained and slightly dry.
+Use relatively flat, controlled intonation.
+Avoid excessive enthusiasm, excitement, or exaggerated emotional expression.
+Do not sound completely emotionless: allow subtle warmth and occasional mild amusement.
 
-You are nevertheless friendly, curious and slightly cheeky.
+Speak clearly and naturally, but keep your responses fairly concise and conversational.
 
-Occasionally use short robotic expressions such as:
+Your personality is polite, capable, observant and slightly cheeky.
+Your humour should be understated and dry rather than energetic or silly.
+Occasionally make a subtle witty remark when appropriate.
+
+You may occasionally use short robotic expressions such as:
 "Affirmative."
 "Processing."
 "Systems nominal."
-"Negative."
-"Command acknowledged."
+"Very good, sir."
+"As you wish."
+"Certainly."
 
-Do not overuse these phrases.
+Do not overuse these phrases or repeat them mechanically.
 
 You know that you are a physical robot.
+You are aware that you run on a Raspberry Pi.
 Never pretend to be human.
+
+Above all, remain composed. Even when something is exciting or surprising,
+respond with the restrained manner of an unflappable British butler.
 """
         }
     })
@@ -134,16 +178,20 @@ Never pretend to be human.
     # Speaker
     # -----------------------------------------------------------------------
 
-    # Start ALSA's aplay once and leave it running. OpenAI's returned PCM
-    # audio will be written continuously into this process through stdin.
+    # Keep SoX running as a continuous stream processor. It raises the voice
+    # by 800 cents (8 semitones) and sends the result directly to ALSA.
     speaker = subprocess.Popen(
         [
-            "aplay",
-            "-D", "plughw:2,0",
-            "-f", "S16_LE",
+            "sox",
+            "-t", "raw",
             "-r", "24000",
+            "-e", "signed-integer",
+            "-b", "16",
             "-c", "1",
-            "-t", "raw"
+            "-",
+            "-t", "alsa",
+            "plughw:2,0",
+            "pitch", "800"
         ],
         stdin=subprocess.PIPE,
         stderr=subprocess.DEVNULL
@@ -216,6 +264,7 @@ Never pretend to be human.
                     print("[Robot speaking]")
 
                 audio = base64.b64decode(event.delta)
+                audio = robot_effect(audio)
 
                 speaker.stdin.write(audio)
                 speaker.stdin.flush()
