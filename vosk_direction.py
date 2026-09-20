@@ -199,7 +199,7 @@ try:
                         print()
                         print("Returned to local command mode.")
 
-                        recognizer = make_recognizer()
+                        
                         mic = start_microphone()
 
 

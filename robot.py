@@ -376,11 +376,13 @@ The backend must perform this action.
 
                 exit_state["requested"] = True
 
-                answer = (
-                    "The user wishes to end the AI conversation. "
-                    "Say a brief natural farewell and tell them you are "
-                    "returning to local control."
-                )
+                print("CLOSING LIVE SESSION NOW")
+
+                connection.send({
+                    "type": "session.close"
+                })
+
+                return
 
             else:
 
