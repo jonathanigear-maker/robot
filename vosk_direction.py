@@ -86,31 +86,42 @@ def get_direction():
 
 model = Model(MODEL_PATH)
 
-recognizer = KaldiRecognizer(
-    model,
-    16000,
-    json.dumps(commands)
-)
 
-recognizer.SetWords(True)
+def make_recognizer():
+
+    recognizer = KaldiRecognizer(
+        model,
+        16000,
+        json.dumps(commands)
+    )
+
+    recognizer.SetWords(True)
+
+    return recognizer
 
 
 # ---------------------------------------------------------------------------
 # Microphone
 # ---------------------------------------------------------------------------
 
-mic = subprocess.Popen(
-    [
-        "arecord",
-        "-D", "plughw:CARD=Array,DEV=0",
-        "-f", "S16_LE",
-        "-r", "16000",
-        "-c", "1",
-        "-t", "raw"
-    ],
-    stdout=subprocess.PIPE,
-    stderr=subprocess.DEVNULL
-)
+def start_microphone():
+
+    return subprocess.Popen(
+        [
+            "arecord",
+            "-D", "plughw:CARD=Array,DEV=0",
+            "-f", "S16_LE",
+            "-r", "16000",
+            "-c", "1",
+            "-t", "raw"
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL
+    )
+
+
+recognizer = make_recognizer()
+mic = start_microphone()
 
 
 print("Robot command listener ready...")
@@ -127,6 +138,9 @@ try:
     while True:
 
         data = mic.stdout.read(2000)
+
+        if not data:
+            continue
 
         if recognizer.AcceptWaveform(data):
 
@@ -168,29 +182,9 @@ try:
 
                         print("Starting AI conversation...")
 
-                        # Stop Vosk microphone capture first.
-                        # This frees the ReSpeaker microphone for robot.py.
+                        # Free the ReSpeaker microphone for robot.py.
                         mic.terminate()
                         mic.wait()
-
-
-                        # ---------------------------------------------------
-                        # Play "Establishing AI link"
-                        #
-                        # Popen is deliberately used instead of run().
-                        # This means Python DOES NOT wait for the WAV to
-                        # finish before starting the OpenAI connection.
-                        # ---------------------------------------------------
-
-
-
-
-                        # ---------------------------------------------------
-                        # Start OpenAI Live immediately
-                        #
-                        # The WAV above can continue playing while robot.py
-                        # opens the WebSocket and starts the Live session.
-                        # ---------------------------------------------------
 
                         subprocess.run(
                             [
@@ -200,7 +194,13 @@ try:
                             cwd="/home/sodigece/robot-github"
                         )
 
-                        break
+                        # robot.py has returned, so AI mode is finished.
+                        # Create a fresh Vosk recognizer and reopen the mic.
+                        print()
+                        print("Returned to local command mode.")
+
+                        recognizer = make_recognizer()
+                        mic = start_microphone()
 
 
                 else:
@@ -218,6 +218,5 @@ except KeyboardInterrupt:
 
 finally:
 
-    # mic may already have been stopped by "robot talk".
     if mic.poll() is None:
         mic.terminate()
