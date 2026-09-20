@@ -2,6 +2,44 @@
 
 A Raspberry Pi-based voice assistant project.
 
+## Git and GitHub setup
+
+Install Git on a fresh Pi:
+
+```bash
+sudo apt update
+sudo apt install -y git
+git --version
+```
+
+Configure the name and email used for commits:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your-github-email@example.com"
+```
+
+Clone the robot repository:
+
+```bash
+git clone https://github.com/jonathanigear-maker/robot.git
+cd robot
+```
+
+### GitHub authentication for pushing
+
+Cloning a public repository does not require a login, but **pushing changes does require GitHub authentication**. GitHub does not accept an account password for Git operations over HTTPS.
+
+On a fresh Pi, authenticate before the first push using your chosen GitHub authentication method (for example GitHub CLI/device login or a personal access token). Once authentication is configured, normal pushes can be made with:
+
+```bash
+git add .
+git commit -m "Describe the change"
+git push
+```
+
+Do not store GitHub access tokens or other credentials in this repository.
+
 ## Python environment setup
 
 Raspberry Pi OS already includes Python. Check the installed version:
