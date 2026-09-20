@@ -173,6 +173,15 @@ Never pretend to be human.
 
 Above all, remain composed. Even when something is exciting or surprising,
 respond with the restrained manner of an unflappable British butler.
+
+Ending or leaving the AI conversation is an application action.
+
+If the user indicates that they want to finish the conversation,
+leave AI mode, shut down the AI conversation, return to local mode,
+or otherwise stop talking with you, delegate that request.
+
+Do not claim to have shut down or exited AI mode yourself.
+The backend must perform this action.
 """
         }
     })
@@ -305,6 +314,14 @@ respond with the restrained manner of an unflappable British butler.
 
     MAX_HISTORY_TURNS = 10
 
+    # AI exit state. The backend sets requested=True when it selects
+    # the exit_ai_mode Robot function.
+    exit_state = {
+        "requested": False,
+        "audio_started": False,
+        "last_audio_time": 0.0
+    }
+
 
     # -----------------------------------------------------------------------
     # Store a completed turn
@@ -339,10 +356,35 @@ respond with the restrained manner of an unflappable British butler.
 
         try:
 
-            answer = handle_task(
+            result = handle_task(
                 question,
                 history_snapshot
             )
+
+            if (
+                isinstance(result, dict)
+                and result.get("action") == "exit_ai_mode"
+            ):
+
+                print()
+                print(
+                    f"{YELLOW}"
+                    f">>> EXIT AI MODE FUNCTION RECEIVED <<<"
+                    f"{RESET}"
+                )
+                print()
+
+                exit_state["requested"] = True
+
+                answer = (
+                    "The user wishes to end the AI conversation. "
+                    "Say a brief natural farewell and tell them you are "
+                    "returning to local control."
+                )
+
+            else:
+
+                answer = result
 
             print()
 
@@ -375,6 +417,40 @@ respond with the restrained manner of an unflappable British butler.
                 f"DELEGATION ERROR: {error}"
                 f"{RESET}"
             )
+
+
+    # -----------------------------------------------------------------------
+    # AI exit watcher
+    # -----------------------------------------------------------------------
+
+    def watch_for_ai_exit():
+
+        while True:
+
+            time.sleep(0.1)
+
+            if (
+                exit_state["requested"]
+                and exit_state["audio_started"]
+                and time.monotonic() - exit_state["last_audio_time"] > 1.25
+            ):
+
+                print()
+                print("Farewell complete - returning to local control...")
+
+                connection.send({
+                    "type": "session.close"
+                })
+
+                return
+
+
+    exit_watch_thread = threading.Thread(
+        target=watch_for_ai_exit,
+        daemon=True
+    )
+
+    exit_watch_thread.start()
 
 
     # -----------------------------------------------------------------------
@@ -481,6 +557,10 @@ respond with the restrained manner of an unflappable British butler.
 
             elif event.type == "session.output_audio.delta":
 
+                if exit_state["requested"]:
+                    exit_state["audio_started"] = True
+                    exit_state["last_audio_time"] = time.monotonic()
+
                 audio = base64.b64decode(
                     event.delta
                 )
@@ -509,6 +589,8 @@ respond with the restrained manner of an unflappable British butler.
                             current_user_turn
                         )
 
+                        current_user_turn = ""
+
                     print()
 
                     print(
@@ -529,6 +611,17 @@ respond with the restrained manner of an unflappable British butler.
                     end="",
                     flush=True
                 )
+
+
+            # ---------------------------------------------------------------
+            # Clean Live shutdown
+            # ---------------------------------------------------------------
+
+            elif event.type == "session.closed":
+
+                print()
+                print("Live session closed cleanly.")
+                break
 
 
             # ---------------------------------------------------------------
