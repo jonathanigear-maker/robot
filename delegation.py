@@ -1,6 +1,9 @@
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from robot_functions import exit_ai_mode
+
+
 load_dotenv()
 
 client = OpenAI()
@@ -11,7 +14,6 @@ def handle_task(question, conversation_history=None):
     if conversation_history is None:
         conversation_history = []
 
-    # Build recent conversation context
     history_text = ""
 
     for turn in conversation_history:
@@ -34,7 +36,7 @@ Answer the current request using the recent conversation for context where relev
 Resolve references such as "it", "that", "the answer", "those",
 and similar phrases from the conversation when possible.
 
-You have access to web search.
+You have access to web search and Robot application functions.
 
 Use web search when the question requires current, recent, changing,
 or otherwise up-to-date information.
@@ -42,9 +44,15 @@ or otherwise up-to-date information.
 For questions that can be answered reliably without the web,
 do not search unnecessarily.
 
+If the user wants to end the AI conversation, leave AI mode,
+return to local control, stop talking with the AI, or otherwise
+finish the conversation, call exit_ai_mode.
+
+Interpret this naturally. The user does not need to use a specific phrase.
+
 Your answer will be passed back to a voice assistant and spoken aloud.
 
-Keep the answer short and conversational.
+Keep normal answers short and conversational.
 Usually answer in 1 to 3 sentences.
 Do not use headings, bullet points, markdown, or long explanations.
 Do not read URLs or citations aloud.
@@ -57,10 +65,34 @@ Give the useful answer directly.
         tools=[
             {
                 "type": "web_search"
+            },
+            {
+                "type": "function",
+                "name": "exit_ai_mode",
+                "description": (
+                    "Exit the live AI conversation and return Robot "
+                    "to its local Vosk command-listening mode."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": False
+                },
+                "strict": True
             }
         ],
 
+        tool_choice="auto",
         input=prompt
     )
+
+    for item in response.output:
+
+        if (
+            item.type == "function_call"
+            and item.name == "exit_ai_mode"
+        ):
+            return exit_ai_mode()
 
     return response.output_text
