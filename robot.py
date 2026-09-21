@@ -197,7 +197,10 @@ The backend must perform this action.
 
         if event.type == "session.started":
 
-            print("Live session started!")
+            print()
+            print(f"{GREEN}================================{RESET}")
+            print(f"{GREEN} AI MODE CONNECTED{RESET}")
+            print(f"{GREEN}================================{RESET}")
 
             # The WebSocket may connect before the startup announcement
             # has finished. Wait here so both WAV files never fight over
@@ -573,7 +576,9 @@ The backend must perform this action.
             elif event.type == "session.closed":
 
                 print()
-                print("Live session closed cleanly.")
+                print(f"{CYAN}================================{RESET}")
+                print(f"{CYAN} AI MODE CLOSED - LOCAL CONTROL{RESET}")
+                print(f"{CYAN}================================{RESET}")
                 break
 
 
