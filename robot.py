@@ -314,15 +314,6 @@ The backend must perform this action.
 
     MAX_HISTORY_TURNS = 10
 
-    # AI exit state. The backend sets requested=True when it selects
-    # the exit_ai_mode Robot function.
-    exit_state = {
-        "requested": False,
-        "audio_started": False,
-        "last_audio_time": 0.0
-    }
-
-
     # -----------------------------------------------------------------------
     # Store a completed turn
     # -----------------------------------------------------------------------
@@ -374,8 +365,6 @@ The backend must perform this action.
                 )
                 print()
 
-                exit_state["requested"] = True
-
                 print("CLOSING LIVE SESSION NOW")
 
                 connection.send({
@@ -419,40 +408,6 @@ The backend must perform this action.
                 f"DELEGATION ERROR: {error}"
                 f"{RESET}"
             )
-
-
-    # -----------------------------------------------------------------------
-    # AI exit watcher
-    # -----------------------------------------------------------------------
-
-    def watch_for_ai_exit():
-
-        while True:
-
-            time.sleep(0.1)
-
-            if (
-                exit_state["requested"]
-                and exit_state["audio_started"]
-                and time.monotonic() - exit_state["last_audio_time"] > 1.25
-            ):
-
-                print()
-                print("Farewell complete - returning to local control...")
-
-                connection.send({
-                    "type": "session.close"
-                })
-
-                return
-
-
-    exit_watch_thread = threading.Thread(
-        target=watch_for_ai_exit,
-        daemon=True
-    )
-
-    exit_watch_thread.start()
 
 
     # -----------------------------------------------------------------------
@@ -558,10 +513,6 @@ The backend must perform this action.
             # ---------------------------------------------------------------
 
             elif event.type == "session.output_audio.delta":
-
-                if exit_state["requested"]:
-                    exit_state["audio_started"] = True
-                    exit_state["last_audio_time"] = time.monotonic()
 
                 audio = base64.b64decode(
                     event.delta
