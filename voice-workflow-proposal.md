@@ -59,6 +59,52 @@ Python/ROS remains responsible for opening/closing connections and executing cap
 
 After a configurable inactivity period, close the cloud session and return to local operation.
 
+## Robot voice character and audio processing
+
+The current cloud voice uses OpenAI Live with the `ballad` voice, but the raw voice is deliberately post-processed on the Raspberry Pi so Robot keeps a natural, friendly speaking performance while gaining a recognisably synthetic character.
+
+The current output signal chain is:
+
+```text
+OpenAI Live (ballad, 24 kHz mono PCM)
+    |
+    v
+Python robot_effect()
+    |-- 500 Hz sine carrier (65%)
+    |-- 750 Hz sine carrier (35%)
+    |-- dry voice mix: 0.75
+    |-- modulated/robot mix: 0.35
+    |-- output gain: 2.0
+    |
+    v
+SoX pitch shift: +800 cents
+    |
+    v
+ReSpeaker playback / speaker
+```
+
+The Python effect is a deliberately mild two-carrier ring/amplitude-modulation effect rather than a full replacement of the voice. For each 16-bit PCM sample, two sine carriers are generated at 500 Hz and 750 Hz, mixed 65/35, and multiplied with the speech sample. The modulated component is then mixed back with the original dry speech. This preserves intelligibility and much of Ballad's natural timing and expression while adding a metallic/electronic texture.
+
+Current constants in `robot.py`:
+
+```python
+CARRIER_1_HZ = 500
+CARRIER_2_HZ = 750
+DRY = 0.75
+ROBOT = 0.35
+VOLUME = 2.0
+```
+
+Very quiet samples (absolute amplitude below 250) bypass the modulation and are only gain-adjusted. This avoids unnecessarily modulating near-silence/background samples. The result is clamped to the signed 16-bit range before being sent to SoX.
+
+SoX then applies `pitch 800`, i.e. a pitch shift of +800 cents (eight semitones). The combination was chosen by listening rather than as a mathematically optimal setting: the design goal is a **friendly, understandable robot voice**, not a harsh classic vocoder effect.
+
+Important implementation detail: `robot_sample_position` is maintained across incoming audio chunks. This keeps the modulation carrier phase continuous between streaming chunks instead of restarting the sine waves at every packet, which could introduce discontinuities/clicks.
+
+When tuning the voice, change one element at a time. Carrier frequencies and the `ROBOT` mix mainly affect the metallic character; `DRY` controls how much natural voice remains; the SoX pitch value changes the perceived character; and `VOLUME` is output gain and should not be used as a substitute for speaker/amplifier volume control because excessive gain will hit the 16-bit clamp and distort.
+
+The intended hardware path is the ReSpeaker XVF3800 feeding its amplified speaker output. A small enclosed 4 ohm / 5 W speaker is planned. Final volume should preferably be controlled at the playback/hardware mixer stage where available, leaving the voice-effect mix itself stable.
+
 ## Web/current-information workflow
 
 When current information is needed, the robot can offer to search rather than guessing. After permission, it can announce the search, use the appropriate OpenAI web-capable workflow, return the result to the conversation, and speak a concise answer.
