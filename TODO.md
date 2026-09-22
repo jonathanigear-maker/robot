@@ -15,6 +15,14 @@ Living checklist for the robot project. Tick items off as they are completed and
 - [ ] Gather the latest Arduino sketch, ESP32 eye firmware and supporting Arduino files/libraries
 - [ ] Upload the robot's Arduino/ESP32 source files to GitHub as legacy/reference before refactoring
 - [ ] Identify which uploaded sketch/firmware versions are actually the latest working versions
+- [ ] Install Arduino IDE 1.8.19 Legacy ARM64 on Pi 5 and reproduce required board packages/libraries
+- [ ] Investigate slow GNOME app launching (Terminal/Settings sometimes take a long time or need repeated clicks)
+- [ ] Compare launching Terminal/Settings from desktop vs from an already-open terminal
+- [ ] Check CPU, RAM/swap, storage I/O and power status while a GNOME app launch is stalled
+- [ ] Click **More information** on the Raspberry Pi PMIC low-power notification next time it appears and capture the details
+- [ ] Investigate whether the 5 V rail briefly sags during simultaneous robot power-up
+- [ ] Test startup with other robot loads disconnected to isolate the source of the low-power reset
+- [ ] If startup inrush is confirmed, consider sequencing logic/Pi power before higher-current motor/servo loads
 
 ## Current priority
 
