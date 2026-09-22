@@ -7,7 +7,7 @@ Living checklist for the robot project. Tick items off as they are completed and
 - [x] Investigate GNOME Remote Desktop failing after reboot
 - [x] Turn off Automatic Login so GNOME keyring/RDP credentials survive reboot
 - [x] Confirm Remote Login / RDP works after a full reboot/cold boot without local intervention
-- [ ] Create the Pi 5 Python virtual environment for robot voice/AI code
+- [x] Create the Pi 5 Python virtual environment for robot voice/AI code
 - [ ] Install/recreate required Python packages in the venv
 - [ ] Confirm VS Code/terminal workflow uses the intended venv
 - [ ] Reserve/fix the robot Pi's IP address in the router (prefer DHCP reservation)
@@ -52,7 +52,7 @@ Development order agreed:
 - [ ] Check/fix Raspberry Pi low-power warning
 - [x] Finish reliable remote-desktop setup for reboot/headless use
 - [ ] Reserve/fix Pi IP address in router
-- [ ] Set up Python venv for robot voice/AI development
+- [x] Set up Python venv for robot voice/AI development
 - [ ] Tidy ROS workspace/startup environment once development layout settles
 
 ## 2. Voice — next practical work
@@ -62,12 +62,14 @@ Development order agreed:
 - [x] Confirm ReSpeaker playback through PipeWire and external speaker
 - [x] Confirm software speaker volume control with PipeWire/wpctl
 - [x] Add user to `audio` group for direct ALSA device permissions
-- [x] Confirm ReSpeaker supports 16 kHz S16_LE stereo playback/capture
-- [ ] Move current ReSpeaker/Vosk code to Pi 5
+- [x] Confirm ReSpeaker native USB stream is 16 kHz S16_LE stereo; 24 kHz application audio also works via ALSA/PipeWire conversion
+- [x] Move current ReSpeaker/Vosk code to Pi 5
 - [ ] Confirm ReSpeaker is detected reliably after reboot
-- [ ] Test microphone capture on Pi 5
-- [ ] Run existing Vosk recognition code on Pi 5
-- [ ] Re-test direction-of-arrival / microphone features we want to retain
+- [x] Test microphone capture on Pi 5
+- [x] Run existing Vosk recognition code on Pi 5
+- [x] Re-test direction-of-arrival / microphone features we want to retain
+- [x] Add udev permission rule for ReSpeaker XVF3800 USB control access
+- [x] Test Vosk -> "robot talk" -> OpenAI Live handoff
 - [ ] Decide final wake/activation approach
 - [ ] Turn voice recognition into a ROS 2 node
 - [ ] Publish recognised speech/commands on suitable ROS topic(s)
@@ -247,7 +249,10 @@ References:
 
 ## 13. OpenAI / conversational layer — later
 
-- [ ] Reintroduce OpenAI Realtime voice conversation
+- [x] Reintroduce OpenAI Realtime voice conversation
+- [x] Confirm OpenAI Live microphone and speaker audio on Pi 5
+- [x] Establish 100% ReSpeaker hardware mixer + 100% PipeWire volume baseline
+- [ ] Tune AI voice volume/gain so Live speech better matches prerecorded WAV volume
 - [ ] Define when local handling is enough vs cloud AI is needed
 - [ ] Add explicit web-search/tool workflow where useful
 - [ ] Integrate robot functions/actions with AI safely
