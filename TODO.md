@@ -2,16 +2,31 @@
 
 Living checklist for the robot project. Tick items off as they are completed and add/refine tasks as the design develops.
 
+## Immediate setup jobs when back at the robot
+
+- [ ] Investigate GNOME Remote Desktop failing after reboot
+- [ ] Turn off Automatic Login if needed so GNOME keyring/RDP credentials survive reboot
+- [ ] Confirm Remote Login / RDP works after a full reboot without local intervention
+- [ ] Create the Pi 5 Python virtual environment for robot voice/AI code
+- [ ] Install/recreate required Python packages in the venv
+- [ ] Confirm VS Code/terminal workflow uses the intended venv
+- [ ] Reserve/fix the robot Pi's IP address in the router (prefer DHCP reservation)
+- [ ] Reboot and confirm the Pi receives the same IP
+- [ ] Gather the latest Arduino sketch, ESP32 eye firmware and supporting Arduino files/libraries
+- [ ] Upload the robot's Arduino/ESP32 source files to GitHub as legacy/reference before refactoring
+- [ ] Identify which uploaded sketch/firmware versions are actually the latest working versions
+
 ## Current priority
 
 Development order agreed:
 
-1. Voice on the Raspberry Pi 5
-2. Local SLM command interpretation
-3. ROS command/behaviour integration without hardware movement
-4. Arduino and subsystem communication
-5. Arm / ros2_control / MoveIt hardware integration
-6. Higher-level behaviours, tracking and OpenAI conversation
+1. Finish practical Pi setup (remote access, venv, fixed/reserved IP, preserve Arduino source)
+2. Voice on the Raspberry Pi 5
+3. Local SLM command interpretation
+4. ROS command/behaviour integration without hardware movement
+5. Arduino and subsystem communication
+6. Arm / ros2_control / MoveIt hardware integration
+7. Higher-level behaviours, tracking and OpenAI conversation
 
 ---
 
@@ -28,6 +43,8 @@ Development order agreed:
 - [x] Confirm MoveIt plan + execute works
 - [ ] Check/fix Raspberry Pi low-power warning
 - [ ] Finish reliable remote-desktop setup for reboot/headless use
+- [ ] Reserve/fix Pi IP address in router
+- [ ] Set up Python venv for robot voice/AI development
 - [ ] Tidy ROS workspace/startup environment once development layout settles
 
 ## 2. Voice — next practical work
@@ -112,6 +129,7 @@ ERROR,...
 
 - [ ] Recover/identify latest Arduino sketch
 - [ ] Recover latest ESP32 eye firmware
+- [ ] Upload all current Arduino/ESP32 project source to GitHub before modifying it
 - [ ] Confirm actual I2C addresses currently in use
 - [ ] Remove obsolete DF2301Q voice-module code if no longer needed
 - [ ] Replace old global timing/delays with per-device scheduling
