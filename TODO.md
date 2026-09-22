@@ -4,9 +4,9 @@ Living checklist for the robot project. Tick items off as they are completed and
 
 ## Immediate setup jobs when back at the robot
 
-- [ ] Investigate GNOME Remote Desktop failing after reboot
-- [ ] Turn off Automatic Login if needed so GNOME keyring/RDP credentials survive reboot
-- [ ] Confirm Remote Login / RDP works after a full reboot without local intervention
+- [x] Investigate GNOME Remote Desktop failing after reboot
+- [x] Turn off Automatic Login so GNOME keyring/RDP credentials survive reboot
+- [x] Confirm Remote Login / RDP works after a full reboot/cold boot without local intervention
 - [ ] Create the Pi 5 Python virtual environment for robot voice/AI code
 - [ ] Install/recreate required Python packages in the venv
 - [ ] Confirm VS Code/terminal workflow uses the intended venv
@@ -50,7 +50,7 @@ Development order agreed:
 - [x] Confirm joint-state feedback
 - [x] Confirm MoveIt plan + execute works
 - [ ] Check/fix Raspberry Pi low-power warning
-- [ ] Finish reliable remote-desktop setup for reboot/headless use
+- [x] Finish reliable remote-desktop setup for reboot/headless use
 - [ ] Reserve/fix Pi IP address in router
 - [ ] Set up Python venv for robot voice/AI development
 - [ ] Tidy ROS workspace/startup environment once development layout settles
@@ -59,6 +59,10 @@ Development order agreed:
 
 - [x] Prototype ReSpeaker + Vosk on earlier Pi
 - [x] Confirm ReSpeaker hardware access
+- [x] Confirm ReSpeaker playback through PipeWire and external speaker
+- [x] Confirm software speaker volume control with PipeWire/wpctl
+- [x] Add user to `audio` group for direct ALSA device permissions
+- [x] Confirm ReSpeaker supports 16 kHz S16_LE stereo playback/capture
 - [ ] Move current ReSpeaker/Vosk code to Pi 5
 - [ ] Confirm ReSpeaker is detected reliably after reboot
 - [ ] Test microphone capture on Pi 5
