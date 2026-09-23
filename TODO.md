@@ -10,6 +10,8 @@ Living checklist for the robot project. Tick items off as they are completed and
 - [x] Create the Pi 5 Python virtual environment for robot voice/AI code
 - [ ] Install/recreate required Python packages in the venv
 - [ ] Confirm VS Code/terminal workflow uses the intended venv
+- [ ] Set up/test SSH X11 forwarding from Windows (PowerShell + VcXsrv) for lightweight Pi GUI applications
+- [ ] Test Thonny and Arduino IDE over the X11 tunnel with GNOME/gdm3 stopped
 - [ ] Reserve/fix the robot Pi's IP address in the router (prefer DHCP reservation)
 - [ ] Reboot and confirm the Pi receives the same IP
 - [ ] Gather the latest Arduino sketch, ESP32 eye firmware and supporting Arduino files/libraries
@@ -51,6 +53,7 @@ Development order agreed:
 - [x] Confirm MoveIt plan + execute works
 - [ ] Check/fix Raspberry Pi low-power warning
 - [x] Finish reliable remote-desktop setup for reboot/headless use
+- [ ] Set up/test X11 forwarding for individual GUI apps when running headless
 - [ ] Reserve/fix Pi IP address in router
 - [x] Set up Python venv for robot voice/AI development
 - [ ] Tidy ROS workspace/startup environment once development layout settles
@@ -70,6 +73,7 @@ Development order agreed:
 - [x] Re-test direction-of-arrival / microphone features we want to retain
 - [x] Add udev permission rule for ReSpeaker XVF3800 USB control access
 - [x] Test Vosk -> "robot talk" -> OpenAI Live handoff
+- [ ] Investigate XVF3800/AIC3104 hardware output gain: read current HP/LINEOUT level and test available analogue gain (0–9 / up to +9 dB as applicable) before relying on >100% digital PipeWire gain
 - [ ] Decide final wake/activation approach
 - [ ] Turn voice recognition into a ROS 2 node
 - [ ] Publish recognised speech/commands on suitable ROS topic(s)
