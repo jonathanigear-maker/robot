@@ -10,8 +10,9 @@ Living checklist for the robot project. Tick items off as they are completed and
 - [x] Create the Pi 5 Python virtual environment for robot voice/AI code
 - [ ] Install/recreate required Python packages in the venv
 - [ ] Confirm VS Code/terminal workflow uses the intended venv
-- [ ] Set up/test SSH X11 forwarding from Windows (PowerShell + VcXsrv) for lightweight Pi GUI applications
-- [ ] Test Thonny and Arduino IDE over the X11 tunnel with GNOME/gdm3 stopped
+- [x] Set up/test SSH X11 forwarding from Windows (PowerShell + VcXsrv) for lightweight Pi GUI applications
+- [x] Test Thonny over the X11 tunnel with GNOME/gdm3 stopped
+- [ ] Test Arduino IDE over the X11 tunnel with GNOME/gdm3 stopped
 - [ ] Reserve/fix the robot Pi's IP address in the router (prefer DHCP reservation)
 - [ ] Reboot and confirm the Pi receives the same IP
 - [ ] Gather the latest Arduino sketch, ESP32 eye firmware and supporting Arduino files/libraries
@@ -53,7 +54,9 @@ Development order agreed:
 - [x] Confirm MoveIt plan + execute works
 - [ ] Check/fix Raspberry Pi low-power warning
 - [x] Finish reliable remote-desktop setup for reboot/headless use
-- [ ] Set up/test X11 forwarding for individual GUI apps when running headless
+- [x] Set up/test X11 forwarding for individual GUI apps when running headless
+- [x] Configure Pi to boot to `multi-user.target` so GNOME/gdm3 does not consume RAM by default
+- [x] Confirm headless boot reduced baseline used RAM from ~615 MiB to ~371 MiB (~244 MiB saving)
 - [ ] Reserve/fix Pi IP address in router
 - [x] Set up Python venv for robot voice/AI development
 - [ ] Tidy ROS workspace/startup environment once development layout settles
