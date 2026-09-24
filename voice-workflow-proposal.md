@@ -198,6 +198,10 @@ ROS
 The immediate objective is not autonomous driving. It is to make the stationary robot feel attentive, responsive and enjoyable to interact with, while building components that remain useful when navigation is added later.
 
 
+## Useful local-model testing tools
+
+- WebLLM.io Playground: https://webllm.io/playground/ — useful for quickly testing local browser-based models, prompts and conversation behaviour before installing a model on the Raspberry Pi.
+
 ## Planned local SLM voice workflow
 
 Current plan for the next local voice/intent implementation:
