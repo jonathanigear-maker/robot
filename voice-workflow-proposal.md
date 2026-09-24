@@ -196,3 +196,36 @@ ROS
 ```
 
 The immediate objective is not autonomous driving. It is to make the stationary robot feel attentive, responsive and enjoyable to interact with, while building components that remain useful when navigation is added later.
+
+
+## Planned local SLM voice workflow
+
+Current plan for the next local voice/intent implementation:
+
+- Install **Kokoro** for local text-to-speech and initially use the **Fable** voice.
+- Run **Qwen2.5-1.5B-Instruct** locally through llama.cpp as the first-choice SLM. If its understanding or conversational quality is not sufficient, test **Qwen2.5-3B-Instruct** instead.
+- Keep the model's short casual conversation/personality responses relatively free-form, but apply **grammar/structured-output restrictions to robot commands** so physical actions can only use defined device/command/value combinations. Python remains responsible for validating and executing commands.
+- Maintain a **rolling conversation history of at most 10 exchanges**. The permanent system prompt, capability definitions and current robot state should be supplied separately so the model does not have to infer persistent state from old conversation.
+- Use an **inactivity timeout of 5 minutes**. If there has been no exchange for five minutes, discard the rolling conversation history and return to the inactive listening state.
+- After that timeout, **Vosk must detect the robot wake word before speech is forwarded to the local SLM**. Once awakened, normal follow-up speech can be forwarded during the active conversation window without requiring the wake word on every turn.
+- Update live device/system state supplied to the SLM as hardware state changes, rather than relying on conversation history to remember it.
+
+Conceptually:
+
+```text
+Inactive
+  |
+  | Vosk detects wake word
+  v
+Active conversation
+  |
+  +--> Vosk -> Qwen -> constrained robot command -> Python/ROS
+  |
+  +--> Vosk -> Qwen -> short local personality response -> Kokoro/Fable
+  |
+  +--> retain up to 10 recent exchanges
+  |
+  +--> refresh live robot/device state each turn
+  |
+  '--> 5 minutes inactivity -> clear history -> require wake word again
+```
