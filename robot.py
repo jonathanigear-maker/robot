@@ -103,8 +103,7 @@ client = OpenAI()
 
 link_sound = subprocess.Popen([
     "aplay",
-    "-D", "plughw:CARD=Array,DEV=0",
-    "/home/sodigece/robot-github/ai_link_start.wav"
+    "/home/sodigece/robot/ai_link_start.wav"
 ])
 
 
@@ -208,9 +207,8 @@ The backend must perform this action.
             link_sound.wait()
 
             subprocess.run([
-                "aplay",
-                "-D", "plughw:CARD=Array,DEV=0",
-                "/home/sodigece/robot-github/ai_link_ready.wav"
+            "aplay",
+            "/home/sodigece/robot/ai_link_ready.wav"
             ])
 
             break
@@ -248,7 +246,7 @@ The backend must perform this action.
             "-c", "1",
             "-",
             "-t", "alsa",
-            "plughw:CARD=Array,DEV=0",
+            "default",
             "pitch", "800"
         ],
         stdin=subprocess.PIPE,

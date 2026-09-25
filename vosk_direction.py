@@ -6,8 +6,10 @@ import struct
 import math
 
 from vosk import Model, KaldiRecognizer
+from pathlib import Path
 
-MODEL_PATH = "/home/sodigece/openai/vosk-model-small-en-gb-0.15"
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "models" / "vosk-model-small-en-gb-0.15"
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +86,7 @@ def get_direction():
 # Vosk setup
 # ---------------------------------------------------------------------------
 
-model = Model(MODEL_PATH)
+model = Model(str(MODEL_PATH))
 
 
 def make_recognizer():
@@ -188,10 +190,10 @@ try:
 
                         subprocess.run(
                             [
-                                "/home/sodigece/openai/env/bin/python",
-                                "/home/sodigece/robot-github/robot.py"
+                                "/home/sodigece/robot-env/bin/python",
+                                "robot.py"
                             ],
-                            cwd="/home/sodigece/robot-github"
+                            cwd="/home/sodigece/robot"
                         )
 
                         # robot.py has returned, so AI mode is finished.

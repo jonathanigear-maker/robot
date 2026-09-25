@@ -1,3 +1,14 @@
 .env
 __pycache__/
 *.pyc
+*.onnx
+# AI / speech models
+*.onnx
+*.bin
+models/
+# Generated audio
+*.wav
+
+# Python junk
+__pycache__/
+*.pyc
