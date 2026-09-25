@@ -2,6 +2,13 @@
 
 A Raspberry Pi-based voice assistant project.
 
+## Project ideas and design
+
+- [Voice and command principles](docs/voice-and-command-principles.md) — the interaction goals, local/cloud voice roles, command boundaries, personality and decisions still to test.
+- [Voice workflow proposal](voice-workflow-proposal.md) — the broader social robot concept and detailed audio processing.
+- [ROS command flow example](docs/ros-command-flow-example.md) — how a spoken behaviour reaches the subsystem controllers.
+- [TODO checklist](TODO.md) — practical work and current progress.
+
 ## Git and GitHub setup
 
 Install Git on a fresh Pi:
