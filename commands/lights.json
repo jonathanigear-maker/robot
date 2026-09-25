@@ -1,0 +1,44 @@
+{
+  "subject": "lights",
+  "aliases": ["light", "lights"],
+  "actions": {
+    "power": {
+      "parameters": {
+        "off": "off",
+        "on": "on"
+      }
+    },
+    "brightness": {
+      "parameters": {
+        "low": 25,
+        "medium": 50,
+        "high": 75,
+        "full": 100
+      },
+      "number_parameter": {
+        "suffix": "percent",
+        "min": 0,
+        "max": 100
+      }
+    },
+    "colour": {
+      "parameters": {
+        "red": "red",
+        "orange": "orange",
+        "yellow": "yellow",
+        "green": "green",
+        "blue": "blue",
+        "indigo": "indigo",
+        "violet": "violet",
+        "warm white": "warm_white",
+        "cool white": "cool_white"
+      }
+    },
+    "temperature": {
+      "parameters": {
+        "warmer": "warmer",
+        "cooler": "cooler"
+      }
+    }
+  }
+}
