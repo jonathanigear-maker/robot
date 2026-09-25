@@ -1,0 +1,45 @@
+{
+  "subject": "volume",
+
+  "aliases": [
+    "volume",
+    "voice",
+    "sound",
+    "noise"
+  ],
+
+  "actions": {
+    "mute": {
+      "parameters": {
+        "mute": "mute",
+        "unmute": "unmute"
+      }
+    },
+
+    "level": {
+      "parameters": {
+        "silent": 0,
+        "low": 25,
+        "medium": 50,
+        "high": 75,
+        "full": 100,
+        "maximum": 100
+      },
+
+      "number_parameter": {
+        "suffix": "percent",
+        "min": 0,
+        "max": 100
+      }
+    },
+
+    "adjust": {
+      "parameters": {
+        "louder": "up",
+        "quieter": "down",
+        "up": "up",
+        "down": "down"
+      }
+    }
+  }
+}
