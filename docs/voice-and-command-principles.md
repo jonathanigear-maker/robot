@@ -47,6 +47,155 @@ The deterministic path is useful for routine, well-defined commands because its 
 
 The 15-second subject context in the exact-command prototype and the planned five-minute conversation window solve different problems. They should not silently become the same timer. When cloud voice is active, route the microphone to that session and avoid competing normal Vosk transcription as appropriate, while keeping the local path ready to resume. Connection startup, readiness, timeout and return to local listening should be visible or audible to the person.
 
+
+## Potential interaction architecture: attention, evidence and response policy
+
+The following ideas are **design candidates to test**, not yet implemented. They refine the simple wake + deterministic parser + SLM model above.
+
+### Dual Vosk as evidence, not just transcript replacement
+
+Run unrestricted and reduced-vocabulary Vosk recognisers over the same audio. The unrestricted recogniser preserves natural language; the specialist recogniser is biased towards Spencer's known wake words, subjects and command parameters. Align their words by timestamps, as `vosk_dual.py` already demonstrates.
+
+Do not treat timestamp overlap alone as recognition confidence. Preserve each recogniser's Vosk word `conf` value as well as start/end times. A specialist word may confirm the unrestricted recogniser, plausibly correct a low-confidence near-homophone (for example unrestricted `blew` versus specialist `blue`), or conflict with a strong unrestricted result. Strong conflicts should not be silently overwritten.
+
+Useful evidence to retain/log includes full transcript and word confidences, specialist transcript and word confidences, timestamp overlap, agreement/conflict, speaker identity/continuity, wake age, subject age, candidate command and final routing decision. This may later provide a real-world dataset for tuning or learning, without requiring a machine-learning classifier now.
+
+### Separate attention from command context
+
+A wake word is not a command subject. Hearing `Spencer` should be able to open an attention window even when no subject or action occurs in that utterance:
+
+```text
+"Hello Spencer"
+    → attention opened; no action
+
+"Turn the lights blue"
+    → explicit subject + value while attention is active
+    → execute
+```
+
+Likewise, information may accumulate over several utterances: `Spencer` → `lights` → `blue`, provided the evidence remains sufficiently fresh. A completed command can establish a recent subject so short follow-ups such as `red`, `medium` or `more` can inherit it.
+
+Attention and subject context should remain separate state. A person may still clearly be talking to Spencer after the previous command subject has become too stale to inherit safely.
+
+### Replace the hard 15-second cliff with decaying evidence
+
+The current 15-second subject timeout is a useful prototype. A later implementation could make contextual trust decay continuously instead of changing abruptly from valid to invalid.
+
+A sigmoid/logistic decay is attractive because evidence can remain almost fully trusted for a short grace period and then fall quickly around a configurable midpoint:
+
+```python
+strength = 1 / (1 + math.exp(k * (age - midpoint)))
+```
+
+Wake/attention and subject context can have different curves. Attention may reasonably decay more slowly than permission to assume that a bare word still refers to the previous device. Meaningful Spencer-related events may refresh appropriate state, but arbitrary background speech should not keep attention alive forever.
+
+### Use multiple evidence dimensions, not one magic confidence
+
+Keep at least these concepts distinct:
+
+- **recognition confidence** — how strongly Vosk supports the recognised word;
+- **attention confidence** — how likely it is that this utterance is directed at Spencer;
+- **command confidence/relevance** — how strongly the utterance maps to one valid robot command.
+
+A future evidence scorer can combine wake strength, subject strength, specialist confidence, unrestricted confidence, recogniser agreement, speaker continuity and conflict penalties. Weighted/logistic scoring is preferable to blindly multiplying probabilities. Hard gates may still be appropriate for some conditions.
+
+The deterministic parser remains valuable: it extracts candidate subject/action/value from the capability JSON. The evidence layer decides whether that candidate is trustworthy enough to execute. This replaces a simple binary exact-match decision without allowing the scoring layer to invent capabilities.
+
+### Routing: ignore, act, clarify or converse
+
+The most useful routing distinction is whether Spencer is being addressed before deciding whether speech is a command.
+
+```text
+speech
+  → attention evidence
+      → low / outside wake window: ignore (do not send ordinary household speech to SLM)
+      → uncertain: ask "Was that for me?"
+      → high: analyse command relevance
+          → high: execute validated command
+          → uncertain: ask a targeted clarification
+          → low: pass full utterance to local SLM as conversation
+```
+
+Low command relevance is not necessarily low recognition confidence. `Tell me a joke` may be recognised perfectly and clearly directed at Spencer, but require no handwritten joke routine: it should fall through to the local SLM. Likewise questions and ordinary requests can go to the SLM once attention is established.
+
+Question-like language (`what`, `why`, `how`, `can you`, etc.) is useful evidence for conversational routing, but must not be an absolute rule: `Can you turn the lights blue?` is still a clear robot command.
+
+An ambiguous command-like phrase can trigger clarification rather than an SLM guess. Examples include asking `Did you mean make the lights blue?` or, when attention itself is uncertain, `Was that for me?` Once clarified, the utterance can be executed or passed onward with that ambiguity resolved.
+
+### Compatible parameters versus genuine conflict
+
+Do not eventually treat every multi-match utterance as ambiguous. `red blue lights` contains conflicting values for the same property and should not be guessed. `lights blue medium`, however, can naturally mean colour=blue **and** brightness=50 and may eventually become two compatible validated actions.
+
+### Local SLM and cloud AI are engines behind one Spencer
+
+The local SLM should handle ordinary conversation and flexible language after attention/routing. Higher-level cloud/realtime AI is for harder reasoning, current/web information or explicit user requests. Routing words such as question/help/explain/search may provide evidence, but the local model can also decide that a problem exceeds its capability.
+
+When escalating, transfer a compact recent transcript plus authoritative structured robot events/state and instruct the realtime session to continue as the same Spencer rather than introduce a new assistant. Do not necessarily send an unlimited conversation history; use a rolling history plus summary/state.
+
+The user should be made aware when the realtime/WebSocket connection opens so it is not accidentally left running. Spencer might say something like `I'll bring the online AI in for this`, and later `I'll go back to local mode`. A physical LED/display indication of an active online connection is also desirable. Explicit commands such as go local, close the connection or stay online may override automatic routing. Cloud idle timeout is separate from wake/attention and command-context timing.
+
+When cloud mode closes, pass a compact summary of useful conclusions back into local conversational state so Spencer retains continuity.
+
+### Speaker continuity
+
+Speaker recognition is another independent signal. Sherpa can provide speaker embeddings/verification; persistent unknown identities would require Spencer's own speaker manager. The first useful distinction may simply be owner/same-speaker versus unknown/speaker-changed.
+
+A speaker change should weaken or break inherited command context even when only a few seconds have elapsed. Authoritative history is retained, but a new person should not automatically inherit another person's terse `more` or `right` command context.
+
+### Deterministic acknowledgement and personality
+
+Command interpretation and acknowledgement should be separate. After a validated action, a response manager decides whether Spencer should give a rich, short, minimal or silent acknowledgement.
+
+Input length is useful evidence but interaction structure matters more. A new, polite request may deserve a fuller response; a terse continuation or repeated adjustment should usually get less speech.
+
+Example:
+
+```text
+"Spencer, turn the lights blue please."
+    → execute
+    → "Certainly, Jonathan. I love blue."
+
+"Turn them down."
+    → execute
+    → "Okay."
+
+"More."
+    → execute
+    → silence
+```
+
+Possible response-policy evidence includes: new wake interaction, first command in a sequence, utterance length/politeness, follow-up status, repetition count, time since last spoken acknowledgement and command confidence. Higher uncertainty can justify an acknowledgement that also confirms the interpretation (`A little brighter`) so a mistaken action is easy to correct.
+
+Silent does not mean expressionless: a head movement, eyes/display response or other subtle physical acknowledgement can replace repetitive speech. Small controlled variation among suitable prerecorded/generated acknowledgements can add personality without invoking the SLM. Later a simple mood/personality state can modify wording and gestures while remaining separate from command authority.
+
+### Learning is deliberately deferred
+
+A Bayesian scorer, logistic regression or tiny neural classifier could eventually learn routing/intent weights from real Spencer interactions, but this is not required for the first implementation. Do not treat an SLM guess as ground truth. Explicit user corrections/confirmations and exact deterministic matches are much stronger labels.
+
+For now, collect the evidence needed to evaluate the simpler system. The dual recognisers, their confidences, contextual decay and explicit routing rules may already provide sufficient behaviour. If learning is introduced later, the accumulated logs can train/tune the weights without changing the capability schema or downstream ROS interface.
+
+### Candidate state to keep independent
+
+A future interaction manager may maintain values such as:
+
+```text
+attention_state / wake_time
+current_speaker / speaker_changed
+active_subject / subject_time
+last_action / command_context
+full + specialist recognition evidence
+command candidate + command confidence
+conversation depth/history
+ai_mode = LOCAL / CLOUD
+cloud_idle_time
+last_response_time
+repetition_count
+personality/mood state
+```
+
+These are deliberately separate because they answer different questions. Avoid collapsing them into one timeout or one confidence number.
+
+
 ## How commands should work
 
 1. **Recognise words, then interpret intent.** The current Vosk prototype reports speech; a tested replacement could use Sherpa or another neural recogniser. The exact-command parser or local model decides whether the person addressed the robot and what they meant. A phrase can contain multiple intents or parameters.
