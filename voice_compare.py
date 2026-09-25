@@ -1,4 +1,3 @@
-import base64
 import math
 import os
 import struct
@@ -28,7 +27,7 @@ PIPER_MODEL = "en_US-danny-low.onnx"
 DANNY_LENGTH_SCALE = 1.10
 DANNY_PITCH = 900
 
-# OpenAI Live
+# OpenAI TTS
 BALLAD_VOICE = "ballad"
 BALLAD_PITCH = 800
 
@@ -39,7 +38,7 @@ DRY = 0.75
 ROBOT = 0.35
 VOLUME = 2.0
 
-# OpenAI Live audio is 24 kHz
+# OpenAI PCM speech output is 24 kHz
 BALLAD_SAMPLE_RATE = 24000
 
 
@@ -147,57 +146,27 @@ def generate_danny(voice, syn_config, text, number):
 
 
 # ============================================================
-# BALLAD / OPENAI LIVE
+# BALLAD / OPENAI TTS
 # ============================================================
 
 def generate_ballad(client, text, number):
     print(f"  Ballad: {text}")
 
-    audio_chunks = []
+    response = client.audio.speech.create(
+        model="gpt-4o-mini-tts",
+        voice=BALLAD_VOICE,
+        input=text,
+        instructions=(
+            "Speak exactly the supplied text and nothing else. "
+            "Use calm, restrained British-English delivery, like an "
+            "unflappable traditional British butler. Keep the intonation "
+            "controlled and slightly dry."
+        ),
+        response_format="pcm"
+    )
 
-    with client.live.connect() as connection:
-        connection.send({
-            "type": "session.start",
-            "session": {
-                "model": "gpt-live-1",
-                "audio": {
-                    "output": {
-                        "voice": BALLAD_VOICE
-                    }
-                },
-                "instructions": """
-Speak exactly the text you are given.
-
-Do not add anything before or after it.
-Do not answer or comment on the text.
-Simply speak it exactly as written.
-"""
-            }
-        })
-
-        while True:
-            event = connection.recv()
-            if event.type == "session.started":
-                break
-
-        connection.send({
-            "type": "session.user_message",
-            "content": text
-        })
-
-        while True:
-            event = connection.recv()
-
-            if event.type == "session.output_audio.delta":
-                audio_chunks.append(base64.b64decode(event.delta))
-
-            elif event.type == "session.output_audio.done":
-                break
-
-            elif event.type == "error":
-                raise RuntimeError(f"OpenAI error: {event}")
-
-    audio = b"".join(audio_chunks)
+    # PCM from the Speech API is raw 24 kHz, 16-bit signed little-endian mono.
+    audio = response.content
 
     raw_filename = os.path.join(
         OUTPUT_DIR,
