@@ -240,8 +240,19 @@ print(" ".join(grammar))
 print()
 
 model = Model(MODEL_PATH)
-recognizer = KaldiRecognizer(model, SAMPLE_RATE, json.dumps(grammar))
-recognizer.SetWords(True)
+
+# Run two recognisers over the same microphone audio:
+# - full_recognizer keeps normal speech so HEARD is a real transcript
+# - specialist_recognizer is constrained to the JSON command vocabulary
+full_recognizer = KaldiRecognizer(model, SAMPLE_RATE)
+full_recognizer.SetWords(True)
+
+specialist_recognizer = KaldiRecognizer(
+    model,
+    SAMPLE_RATE,
+    json.dumps(grammar)
+)
+specialist_recognizer.SetWords(True)
 
 engine = CommandEngine(definitions)
 mic = start_microphone()
@@ -257,17 +268,60 @@ try:
         if not data:
             continue
 
-        if recognizer.AcceptWaveform(data):
-            result = json.loads(recognizer.Result())
-            text = result.get("text", "").strip()
+        full_final = full_recognizer.AcceptWaveform(data)
+        specialist_final = specialist_recognizer.AcceptWaveform(data)
 
-            if not text or text == "[unk]":
+        # The full recogniser defines the utterance boundary for this test.
+        if full_final:
+            full_result = json.loads(full_recognizer.Result())
+
+            # Keep the specialist recogniser aligned with the same utterance.
+            # If it has not independently reached an endpoint yet, FinalResult()
+            # flushes its current utterance so we can inspect both side by side.
+            if specialist_final:
+                specialist_result = json.loads(specialist_recognizer.Result())
+            else:
+                specialist_result = json.loads(
+                    specialist_recognizer.FinalResult()
+                )
+
+            full_text = full_result.get("text", "").strip()
+            specialist_text = specialist_result.get("text", "").strip()
+
+            if not full_text:
                 continue
 
-            print("HEARD:", text)
+            print("HEARD (full):", full_text)
+            print("SPECIALIST:", specialist_text or "<nothing>")
 
-            command = engine.parse(text)
+            print("\nFULL WORDS:")
+            for word in full_result.get("result", []):
+                print(
+                    f'  {word["word"]:<15} '
+                    f'conf={word.get("conf", 0.0):.3f} '
+                    f'{word.get("start", 0.0):.2f}-'
+                    f'{word.get("end", 0.0):.2f}'
+                )
 
+            print("\nSPECIALIST WORDS:")
+            specialist_words = specialist_result.get("result", [])
+            if specialist_words:
+                for word in specialist_words:
+                    print(
+                        f'  {word["word"]:<15} '
+                        f'conf={word.get("conf", 0.0):.3f} '
+                        f'{word.get("start", 0.0):.2f}-'
+                        f'{word.get("end", 0.0):.2f}'
+                    )
+            else:
+                print("  <nothing>")
+
+            # For now the command parser uses the specialist transcript.
+            # Do not merge/correct the two transcripts yet: the point of this
+            # test is to see the raw evidence from both recognisers.
+            command = engine.parse(specialist_text)
+
+            print("\nCOMMAND:")
             print(json.dumps(command, indent=2))
 
             if command["status"] == "matched":
