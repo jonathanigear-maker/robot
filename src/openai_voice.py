@@ -12,7 +12,7 @@ import time
 from dotenv import load_dotenv
 from openai import OpenAI
 from delegation import handle_task
-
+from voice_feedback import command_accepted
 
 # ---------------------------------------------------------------------------
 # Terminal colours
@@ -102,12 +102,7 @@ client = OpenAI()
 # Play startup message while connection opens
 # ---------------------------------------------------------------------------
 
-link_sound = subprocess.Popen([
-    "aplay",
-    "/home/sodigece/robot/sounds/ai_link_start.wav"
-])
-
-
+link_sound = command_accepted()
 print("Opening Live connection...")
 connect_start = time.perf_counter()
 

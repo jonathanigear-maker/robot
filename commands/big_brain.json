@@ -1,0 +1,23 @@
+{
+  "subject": "big_brain",
+  "aliases": ["ai", "online ai", "big brain"],
+
+  "actions": {
+    "open": {
+      "parameters": {
+        "open": "open",
+        "start": "open",
+        "connect": "open"
+      }
+    }
+  },
+
+  "fallback": {
+    "when": "not_understood",
+    "confirmation": {
+      "prompt": "Shall I open the big brain?",
+      "action": "open",
+      "parameter": "open"
+    }
+  }
+}

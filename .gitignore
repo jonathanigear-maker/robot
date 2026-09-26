@@ -15,3 +15,14 @@ models/vosk-model-*/
 
 # Generated audio
 *.wav
+
+# Local executables
+bin/
+
+# Arduino build output
+build/
+*.hex
+*.elf
+
+# Locally installed Arduino libraries
+arduino/libraries/
