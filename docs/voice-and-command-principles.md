@@ -211,7 +211,7 @@ For example, “It's a bit dark in here” may become a `set_light` request with
 
 The current JSON definitions cover lights (power, brightness, colour and warmer/cooler) and volume (mute, level and relative adjustment). They are a useful seed for the constrained command schema, not a promise that each operation already controls hardware. Keep names, ranges, synonyms and actual implementations in sync. A percentage must remain within 0–100, and relative adjustments should use the authoritative current state rather than a model's recollection.
 
-The current [`system-prompt.txt`](../system-prompt.txt) is a prototype: it lists lights and motors and includes illustrative robot state. Its sample state must not be treated as live telemetry. Before execution is wired up, derive the allowed actions and current state from authoritative application data instead of maintaining conflicting handwritten lists.
+The current [`system-prompt.txt`](../config/system-prompt.txt) is a prototype: it lists lights and motors and includes illustrative robot state. Its sample state must not be treated as live telemetry. Before execution is wired up, derive the allowed actions and current state from authoritative application data instead of maintaining conflicting handwritten lists.
 
 ## The sound and personality
 

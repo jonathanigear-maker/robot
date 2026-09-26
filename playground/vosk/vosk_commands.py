@@ -5,7 +5,8 @@ from pathlib import Path
 
 from vosk import Model, KaldiRecognizer
 
-MODEL_PATH = "/home/sodigece/openai/vosk-model-small-en-gb-0.15"
+FULL_MODEL_PATH = "/home/sodigece/robot/models/vosk-model-en-us-0.22-lgraph"
+SPECIALIST_MODEL_PATH = "/home/sodigece/robot/models/vosk-model-small-en-gb-0.15"
 SAMPLE_RATE = 16000
 COMMAND_DIRECTORY = Path(__file__).parent / "commands"
 CONTEXT_SECONDS = 15.0
@@ -239,19 +240,23 @@ print("Vosk grammar:")
 print(" ".join(grammar))
 print()
 
-model = Model(MODEL_PATH)
+print("Loading full Vosk model...")
+full_model = Model(FULL_MODEL_PATH)
 
-# Run two recognisers over the same microphone audio:
-# - full_recognizer keeps normal speech so HEARD is a real transcript
-# - specialist_recognizer is constrained to the JSON command vocabulary
-full_recognizer = KaldiRecognizer(model, SAMPLE_RATE)
+print("Loading specialist Vosk model...")
+specialist_model = Model(SPECIALIST_MODEL_PATH)
+
+# Full recognizer: larger unrestricted model
+full_recognizer = KaldiRecognizer(full_model, SAMPLE_RATE)
 full_recognizer.SetWords(True)
 
+# Specialist recognizer: small British model + JSON command grammar
 specialist_recognizer = KaldiRecognizer(
-    model,
+    specialist_model,
     SAMPLE_RATE,
     json.dumps(grammar)
 )
+
 specialist_recognizer.SetWords(True)
 
 engine = CommandEngine(definitions)
@@ -268,22 +273,54 @@ try:
         if not data:
             continue
 
+        # Time how long each recogniser takes to process this audio chunk.
+        t0 = time.perf_counter()
         full_final = full_recognizer.AcceptWaveform(data)
+        t1 = time.perf_counter()
+
         specialist_final = specialist_recognizer.AcceptWaveform(data)
+        t2 = time.perf_counter()
+
+        full_chunk_time = t1 - t0
+        specialist_chunk_time = t2 - t1
+
+        # Report unusually slow chunks immediately.
+        # This helps us see whether either recogniser is falling behind
+        # while audio is arriving.
+        if full_chunk_time > 0.1 or specialist_chunk_time > 0.1:
+            print(
+                f"[CHUNK] full={full_chunk_time:.3f}s  "
+                f"specialist={specialist_chunk_time:.3f}s"
+            )
 
         # The full recogniser defines the utterance boundary for this test.
         if full_final:
+            endpoint_time = time.perf_counter()
+
+            # Time retrieval of the full result.
+            result_start = time.perf_counter()
             full_result = json.loads(full_recognizer.Result())
+            full_result_time = time.perf_counter() - result_start
 
             # Keep the specialist recogniser aligned with the same utterance.
-            # If it has not independently reached an endpoint yet, FinalResult()
-            # flushes its current utterance so we can inspect both side by side.
+            specialist_result_start = time.perf_counter()
+
             if specialist_final:
-                specialist_result = json.loads(specialist_recognizer.Result())
+                specialist_result = json.loads(
+                    specialist_recognizer.Result()
+                )
             else:
                 specialist_result = json.loads(
                     specialist_recognizer.FinalResult()
                 )
+
+            specialist_result_time = (
+                time.perf_counter() - specialist_result_start
+            )
+
+            processing_after_endpoint = (
+                time.perf_counter() - endpoint_time
+            )
 
             full_text = full_result.get("text", "").strip()
             specialist_text = specialist_result.get("text", "").strip()
@@ -291,8 +328,31 @@ try:
             if not full_text:
                 continue
 
+            print()
             print("HEARD (full):", full_text)
             print("SPECIALIST:", specialist_text or "<nothing>")
+
+            print("\nTIMING:")
+            print(
+                f"  last full chunk:       "
+                f"{full_chunk_time:.3f}s"
+            )
+            print(
+                f"  last specialist chunk: "
+                f"{specialist_chunk_time:.3f}s"
+            )
+            print(
+                f"  full Result():          "
+                f"{full_result_time:.3f}s"
+            )
+            print(
+                f"  specialist result:      "
+                f"{specialist_result_time:.3f}s"
+            )
+            print(
+                f"  after endpoint total:   "
+                f"{processing_after_endpoint:.3f}s"
+            )
 
             print("\nFULL WORDS:")
             for word in full_result.get("result", []):
@@ -305,6 +365,7 @@ try:
 
             print("\nSPECIALIST WORDS:")
             specialist_words = specialist_result.get("result", [])
+
             if specialist_words:
                 for word in specialist_words:
                     print(
@@ -317,8 +378,6 @@ try:
                 print("  <nothing>")
 
             # For now the command parser uses the specialist transcript.
-            # Do not merge/correct the two transcripts yet: the point of this
-            # test is to see the raw evidence from both recognisers.
             command = engine.parse(specialist_text)
 
             print("\nCOMMAND:")

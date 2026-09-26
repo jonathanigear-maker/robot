@@ -1,39 +1,38 @@
 import subprocess
 import json
+import time
 
 from vosk import Model, KaldiRecognizer
 
-MODEL_PATH = "/home/sodigece/openai/vosk-model-small-en-gb-0.15"
+FULL_MODEL_PATH = "/home/sodigece/robot/models/vosk-model-en-us-0.22-lgraph"
+SPECIAL_MODEL_PATH = "/home/sodigece/robot/models/vosk-model-small-en-gb-0.15"
 SAMPLE_RATE = 16000
 
 # Specialist robot vocabulary. Add important/unusual robot words here.
 SPECIAL_WORDS = [
-    "hey",
-    "robot",
-    "spenser",
-    "spencer",
-    "lights",
-    "light",
-    "motors",
-    "motor",
-    "lidar",
-    "on",
-    "off",
-    "turn",
-    "switch",
-    "move",
-    "go",
-    "forward",
-    "backward",
-    "left",
-    "right",
-    "stop",
-    "halt",
-    "talk",
-    "conversation",
-    "start",
-    "the",
-    "a",
+    # Robot/address
+    "robot", "spencer", "spenser",
+
+    # Polite/common speech
+    "please", "could", "would", "can", "you", "your",
+    "the", "a", "an", "my", "me", "it", "to",
+    "i", "want", "like", "make", "what", "why",
+    "is", "are", "was", "and", "about",
+
+    # Actions
+    "turn", "switch", "move", "go", "stop", "halt",
+    "start", "set", "change",
+
+    # Devices
+    "light", "lights", "motor", "motors", "lidar",
+
+    # Directions/states
+    "on", "off", "forward", "backward", "left", "right",
+
+    # Colours
+    "red", "green", "blue", "yellow", "white",
+    "orange", "purple",
+
     "[unk]"
 ]
 
@@ -91,12 +90,13 @@ def merge_words(full_words, special_words):
     """
     Start with the unrestricted Vosk result.
 
-    A specialist word with strong timestamp overlap can either:
-      * confirm the full recognizer's word (green), or
-      * replace it (yellow).
+    Specialist can:
+      * confirm the full recognizer's word (green)
+      * replace it if specialist confidence is sufficiently stronger (yellow)
 
     [unk] is never used as a replacement.
     """
+
     merged = [
         {
             "word": word["word"],
@@ -118,18 +118,29 @@ def merge_words(full_words, special_words):
 
         for index, full_word in enumerate(full_words):
             score = overlap_ratio(full_word, specialist)
+
             if score > best_overlap:
                 best_overlap = score
                 best_index = index
 
-        # Require substantial overlap so nearby words are not accidentally replaced.
+        # Require substantial timestamp overlap.
         if best_index is not None and best_overlap >= 0.50:
-            original = merged[best_index]["word"]
-            merged[best_index]["word"] = specialist_word
 
+            original = merged[best_index]["word"]
+
+            full_conf = full_words[best_index].get("conf", 0.0)
+            special_conf = specialist.get("conf", 0.0)
+
+            # Both recognizers heard the same word.
             if original == specialist_word:
                 merged[best_index]["source"] = "confirmed"
-            else:
+
+            # Specialist heard something different.
+            elif (
+                special_conf > full_conf + 0.15
+                or (full_conf < 0.60 and special_conf > 0.70)
+            ):
+                merged[best_index]["word"] = specialist_word
                 merged[best_index]["source"] = "corrected"
 
     return merged
@@ -159,11 +170,15 @@ def print_merged(full_result, special_result):
     print(" ".join(output))
 
 
-print("Loading Vosk model...")
-model = Model(MODEL_PATH)
+print("Loading full Vosk model...")
+full_model = Model(FULL_MODEL_PATH)
 
-full_recognizer = make_full_recognizer(model)
-special_recognizer = make_special_recognizer(model)
+print("Loading specialist Vosk model...")
+special_model = Model(SPECIAL_MODEL_PATH)
+
+full_recognizer = make_full_recognizer(full_model)
+special_recognizer = make_special_recognizer(special_model)
+
 mic = start_microphone()
 
 print()
@@ -174,6 +189,11 @@ print(f"{YELLOW}Yellow{RESET}       = specialist recognizer changed the word")
 print("Press Ctrl+C to stop.")
 print()
 
+full_total_time = 0.0
+special_total_time = 0.0
+chunk_count = 0
+
+
 try:
     while True:
         data = mic.stdout.read(2000)
@@ -181,27 +201,58 @@ try:
         if not data:
             continue
 
+        # ---- Full recognizer timing ----
+        start = time.perf_counter()
         full_final = full_recognizer.AcceptWaveform(data)
-        special_final = special_recognizer.AcceptWaveform(data)
+        full_time = time.perf_counter() - start
 
-        # Both recognizers receive exactly the same audio. Normally their final
-        # utterance boundaries line up. Print when the full recognizer closes
-        # an utterance, using the specialist's current final result too.
+        # ---- Specialist recognizer timing ----
+        start = time.perf_counter()
+        special_final = special_recognizer.AcceptWaveform(data)
+        special_time = time.perf_counter() - start
+
+        # Accumulate processing time
+        full_total_time += full_time
+        special_total_time += special_time
+        chunk_count += 1
+
+        # Both recognizers receive exactly the same audio.
         if full_final:
             full_result = json.loads(full_recognizer.Result())
 
             if special_final:
                 special_result = json.loads(special_recognizer.Result())
             else:
-                # Force the specialist's current utterance result so we can
-                # compare its timestamped words with the full result.
                 special_result = json.loads(special_recognizer.FinalResult())
+                special_recognizer = make_special_recognizer(special_model)
 
-                # FinalResult closes that recognizer, so make a fresh specialist
-                # recognizer for the next utterance.
-                special_recognizer = make_special_recognizer(model)
+            if full_result.get("text", "").strip():
 
-            print_merged(full_result, special_result)
+                # Each 2000-byte chunk contains:
+                # 1000 samples / 16000 samples/sec = 0.0625 seconds
+                audio_time = chunk_count * 0.0625
+
+                total_processing = full_total_time + special_total_time
+
+                print()
+                print(f"Audio processed:        {audio_time:.2f} s")
+                print(f"Full Vosk CPU time:     {full_total_time:.3f} s")
+                print(f"Specialist CPU time:    {special_total_time:.3f} s")
+                print(f"Combined Vosk CPU time: {total_processing:.3f} s")
+                print(f"Final full chunk:       {full_time * 1000:.1f} ms")
+
+                if total_processing < audio_time:
+                    print(f"HEADROOM:               {audio_time - total_processing:.3f} s")
+                else:
+                    print(f"BEHIND REALTIME:        {total_processing - audio_time:.3f} s")
+
+                print_merged(full_result, special_result)
+                print()
+
+            # Reset counters for next utterance
+            full_total_time = 0.0
+            special_total_time = 0.0
+            chunk_count = 0
 
 except KeyboardInterrupt:
     print("\nStopped.")

@@ -13,7 +13,7 @@ options.intra_op_num_threads = THREADS
 options.inter_op_num_threads = 1
 
 session = rt.InferenceSession(
-    "kokoro-v1.0.int8.onnx",
+    "/home/sodigece/robot/models/kokoro/kokoro-v1.0.int8.onnx",
     sess_options=options,
     providers=["CPUExecutionProvider"]
 )
@@ -22,8 +22,8 @@ kokoro = Kokoro.__new__(Kokoro)
 
 kokoro._setup(
     session=session,
-    model_path="kokoro-v1.0.int8.onnx",
-    voices_path="voices-v1.0.bin",
+    model_path="/home/sodigece/robot/models/kokoro/kokoro-v1.0.int8.onnx",
+    voices_path="/home/sodigece/robot/models/kokoro/voices-v1.0.bin",
     espeak_config=None,
     vocab_config=None
 )

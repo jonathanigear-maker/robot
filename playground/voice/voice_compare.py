@@ -22,14 +22,16 @@ SENTENCES = [
     "Well, that was entirely predictable."
 ]
 
-# Piper
-PIPER_MODEL = "en_US-danny-low.onnx"
+# Piper / Danny
+PIPER_MODEL = "/home/sodigece/robot/voices/en_US-danny-low.onnx"
 DANNY_LENGTH_SCALE = 1.10
 DANNY_PITCH = 900
+DANNY_TEMPO = 1.0
 
-# OpenAI TTS
-BALLAD_VOICE = "ballad"
-BALLAD_PITCH = 800
+# OpenAI / Onyx
+ONYX_VOICE = "onyx"
+ONYX_PITCH = 900
+ONYX_TEMPO = 1.15
 
 # Robot effect
 CARRIER_1_HZ = 500
@@ -39,7 +41,7 @@ ROBOT = 0.35
 VOLUME = 2.0
 
 # OpenAI PCM speech output is 24 kHz
-BALLAD_SAMPLE_RATE = 24000
+ONYX_SAMPLE_RATE = 24000
 
 
 # ============================================================
@@ -52,9 +54,14 @@ def robot_effect(audio, sample_rate):
 
     for position, sample in enumerate(samples):
         t = position / sample_rate
+
         carrier1 = math.sin(2 * math.pi * CARRIER_1_HZ * t)
         carrier2 = math.sin(2 * math.pi * CARRIER_2_HZ * t)
-        carrier = (carrier1 * 0.65) + (carrier2 * 0.35)
+
+        carrier = (
+            (carrier1 * 0.65) +
+            (carrier2 * 0.35)
+        )
 
         if abs(sample) < 250:
             processed = sample * VOLUME
@@ -64,10 +71,17 @@ def robot_effect(audio, sample_rate):
                 (sample * carrier * ROBOT)
             ) * VOLUME
 
-        processed = max(-32768, min(32767, int(processed)))
+        processed = max(
+            -32768,
+            min(32767, int(processed))
+        )
+
         output.append(processed)
 
-    return struct.pack("<" + "h" * len(output), *output)
+    return struct.pack(
+        "<" + "h" * len(output),
+        *output
+    )
 
 
 # ============================================================
@@ -83,11 +97,20 @@ def save_wav(filename, audio, sample_rate):
 
 
 # ============================================================
-# APPLY ROBOT EFFECT + SOX PITCH
+# APPLY ROBOT EFFECT + SOX PITCH/TEMPO
 # ============================================================
 
-def make_robot_wav(raw_audio, sample_rate, pitch, output_filename):
-    processed = robot_effect(raw_audio, sample_rate)
+def make_robot_wav(
+    raw_audio,
+    sample_rate,
+    pitch,
+    tempo,
+    output_filename
+):
+    processed = robot_effect(
+        raw_audio,
+        sample_rate
+    )
 
     process = subprocess.Popen(
         [
@@ -99,7 +122,8 @@ def make_robot_wav(raw_audio, sample_rate, pitch, output_filename):
             "-c", "1",
             "-",
             output_filename,
-            "pitch", str(pitch)
+            "pitch", str(pitch),
+            "tempo", str(tempo)
         ],
         stdin=subprocess.PIPE,
         stderr=subprocess.DEVNULL
@@ -115,73 +139,113 @@ def make_robot_wav(raw_audio, sample_rate, pitch, output_filename):
 # DANNY / PIPER
 # ============================================================
 
-def generate_danny(voice, syn_config, text, number):
+def generate_danny(
+    voice,
+    syn_config,
+    text,
+    number
+):
     print(f"  Danny: {text}")
 
-    temporary_file = os.path.join(OUTPUT_DIR, "_danny_temp.wav")
+    temporary_file = os.path.join(
+        OUTPUT_DIR,
+        "_danny_temp.wav"
+    )
 
-    with wave.open(temporary_file, "wb") as wav_file:
-        voice.synthesize_wav(text, wav_file, syn_config=syn_config)
+    with wave.open(
+        temporary_file,
+        "wb"
+    ) as wav_file:
 
-    with wave.open(temporary_file, "rb") as wav_file:
+        voice.synthesize_wav(
+            text,
+            wav_file,
+            syn_config=syn_config
+        )
+
+    with wave.open(
+        temporary_file,
+        "rb"
+    ) as wav_file:
+
         sample_rate = wav_file.getframerate()
-        audio = wav_file.readframes(wav_file.getnframes())
+
+        audio = wav_file.readframes(
+            wav_file.getnframes()
+        )
 
     raw_filename = os.path.join(
         OUTPUT_DIR,
         f"{number:02d}_danny_raw.wav"
     )
+
     robot_filename = os.path.join(
         OUTPUT_DIR,
         f"{number:02d}_danny_robot.wav"
     )
 
-    save_wav(raw_filename, audio, sample_rate)
+    save_wav(
+        raw_filename,
+        audio,
+        sample_rate
+    )
+
     make_robot_wav(
         audio,
         sample_rate,
         DANNY_PITCH,
+        DANNY_TEMPO,
         robot_filename
     )
 
 
 # ============================================================
-# BALLAD / OPENAI TTS
+# ONYX / OPENAI TTS
 # ============================================================
 
-def generate_ballad(client, text, number):
-    print(f"  Ballad: {text}")
+def generate_onyx(
+    client,
+    text,
+    number
+):
+    print(f"  Onyx: {text}")
 
     response = client.audio.speech.create(
         model="gpt-4o-mini-tts",
-        voice=BALLAD_VOICE,
+        voice=ONYX_VOICE,
         input=text,
         instructions=(
             "Speak exactly the supplied text and nothing else. "
-            "Use calm, restrained British-English delivery, like an "
-            "unflappable traditional British butler. Keep the intonation "
-            "controlled and slightly dry."
+            "Use calm, restrained British-English delivery, "
+            "like an unflappable traditional British butler. "
+            "Keep the intonation controlled and slightly dry."
         ),
         response_format="pcm"
     )
 
-    # PCM from the Speech API is raw 24 kHz, 16-bit signed little-endian mono.
     audio = response.content
 
     raw_filename = os.path.join(
         OUTPUT_DIR,
-        f"{number:02d}_ballad_raw.wav"
-    )
-    robot_filename = os.path.join(
-        OUTPUT_DIR,
-        f"{number:02d}_ballad_robot.wav"
+        f"{number:02d}_onyx_raw.wav"
     )
 
-    save_wav(raw_filename, audio, BALLAD_SAMPLE_RATE)
+    robot_filename = os.path.join(
+        OUTPUT_DIR,
+        f"{number:02d}_onyx_robot.wav"
+    )
+
+    save_wav(
+        raw_filename,
+        audio,
+        ONYX_SAMPLE_RATE
+    )
+
     make_robot_wav(
         audio,
-        BALLAD_SAMPLE_RATE,
-        BALLAD_PITCH,
+        ONYX_SAMPLE_RATE,
+        ONYX_PITCH,
+        ONYX_TEMPO,
         robot_filename
     )
 
@@ -196,19 +260,35 @@ print(" SPENSER VOICE COMPARISON")
 print("================================")
 print()
 
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(
+    OUTPUT_DIR,
+    exist_ok=True
+)
 
 print("Loading Danny...")
-piper_voice = PiperVoice.load(PIPER_MODEL)
-piper_config = SynthesisConfig(length_scale=DANNY_LENGTH_SCALE)
+
+piper_voice = PiperVoice.load(
+    PIPER_MODEL
+)
+
+piper_config = SynthesisConfig(
+    length_scale=DANNY_LENGTH_SCALE
+)
+
 print("Danny ready.")
 
 load_dotenv()
+
 client = OpenAI()
 
-for number, text in enumerate(SENTENCES, start=1):
+for number, text in enumerate(
+    SENTENCES,
+    start=1
+):
     print()
-    print(f"Sentence {number}/{len(SENTENCES)}")
+    print(
+        f"Sentence {number}/{len(SENTENCES)}"
+    )
 
     generate_danny(
         piper_voice,
@@ -217,21 +297,30 @@ for number, text in enumerate(SENTENCES, start=1):
         number
     )
 
-    generate_ballad(
+    generate_onyx(
         client,
         text,
         number
     )
 
-temporary_file = os.path.join(OUTPUT_DIR, "_danny_temp.wav")
+
+temporary_file = os.path.join(
+    OUTPUT_DIR,
+    "_danny_temp.wav"
+)
 
 if os.path.exists(temporary_file):
     os.remove(temporary_file)
+
 
 print()
 print("================================")
 print(" FINISHED")
 print("================================")
 print()
-print(f"WAV files saved in: {OUTPUT_DIR}/")
+
+print(
+    f"WAV files saved in: {OUTPUT_DIR}/"
+)
+
 print()

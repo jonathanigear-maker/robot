@@ -35,6 +35,7 @@ DRY = 0.75
 ROBOT = 0.35
 VOLUME = 2.0
 
+API_VOICE_VOLUME = 2.5
 robot_sample_position = 0
 
 
@@ -103,7 +104,7 @@ client = OpenAI()
 
 link_sound = subprocess.Popen([
     "aplay",
-    "/home/sodigece/robot/ai_link_start.wav"
+    "/home/sodigece/robot/sounds/ai_link_start.wav"
 ])
 
 
@@ -208,7 +209,7 @@ The backend must perform this action.
 
             subprocess.run([
             "aplay",
-            "/home/sodigece/robot/ai_link_ready.wav"
+            "/home/sodigece/robot/sounds/ai_link_ready.wav"
             ])
 
             break
@@ -247,7 +248,8 @@ The backend must perform this action.
             "-",
             "-t", "alsa",
             "default",
-            "pitch", "800"
+            "pitch", "900",
+            "vol", str(API_VOICE_VOLUME)
         ],
         stdin=subprocess.PIPE,
         stderr=subprocess.DEVNULL

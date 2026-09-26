@@ -11,7 +11,7 @@ from piper import PiperVoice, SynthesisConfig
 # Piper settings
 # ------------------------------------------------------------
 
-MODEL = "en_US-danny-low.onnx"
+MODEL = "/home/sodigece/robot/voices/en_US-danny-low.onnx"
 
 # 1.0 = normal
 # Higher = slower
