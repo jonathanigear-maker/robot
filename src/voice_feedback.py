@@ -1,7 +1,6 @@
 import random
-import subprocess
 from pathlib import Path
-
+from src.audio_output import play_wav_async
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SOUNDS = PROJECT_ROOT / "sounds"
@@ -22,15 +21,14 @@ def command_accepted():
 
     print(f"VOICE: {sound.name}")
 
-    process = subprocess.Popen(
-        ["aplay", "-q", str(sound)]
-    )
+    return play_wav_async(sound)
 
-    return process
 
 def big_brain_confirmation():
     """Play a random Big Brain confirmation question."""
+
     folder = SOUNDS / "query_openBigBrin"
+
     choices = list(folder.glob("*.wav"))
 
     if not choices:
@@ -41,8 +39,4 @@ def big_brain_confirmation():
 
     print(f"VOICE STARTED: {sound.name}")
 
-    process = subprocess.Popen(
-        ["aplay", "-q", str(sound)]
-    )
-
-    return process
+    return play_wav_async(sound)

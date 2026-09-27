@@ -1,19 +1,18 @@
-import subprocess
-import sys
-from pathlib import Path
-
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-OPENAI_VOICE = PROJECT_ROOT / "src" / "openai_voice.py"
+from src import openai_realtime
+from src import moonshine
 
 
 def open():
-    """Open the online OpenAI voice conversation."""
+    """Open the online OpenAI real-time voice conversation."""
 
     print("BIG BRAIN: Opening...")
 
-    subprocess.run(
-        [sys.executable, str(OPENAI_VOICE)]
-    )
+    moonshine.pause()
+
+    try:
+        openai_realtime.open()
+
+    finally:
+        moonshine.resume()
 
     print("BIG BRAIN: Closed.")

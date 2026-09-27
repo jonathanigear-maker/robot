@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from robot_functions import exit_ai_mode
+from src.robot_functions import exit_ai_mode
 
 
 load_dotenv()
