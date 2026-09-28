@@ -11,7 +11,7 @@ from src.command_engine import CommandEngine
 from src.voice_feedback import command_accepted, big_brain_confirmation
 from src.big_brain import open as open_big_brain
 from src import arduino_comms
-
+from src import lights_functions
 # ===========================================================================
 # MOONSHINE - LOCAL SPEECH RECOGNITION
 # ===========================================================================
@@ -207,8 +207,14 @@ def heard_line(line):
                 daemon=True,
             ).start()
 
+        elif command["subject"] == "lights":
+            lights_functions.handle(
+                command["action"],
+                command["value"],
+            )
+            command_accepted()
+
         else:
-            # Normal command acknowledgement sound.
             command_accepted()
 
     # -----------------------------------------------------------------------

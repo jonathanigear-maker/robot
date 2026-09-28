@@ -6,12 +6,6 @@ import time
 SERIAL_PORT = "/dev/ttyACM0"
 BAUD_RATE = 9600
 
-START_BYTE = 0xA1
-END_BYTE = 0x55
-
-# Arduino command IDs
-MOUTH_LEVEL = 0xA5
-
 
 # Persistent connection
 _ser = None
@@ -51,7 +45,6 @@ def _serial_reader():
     """Continuously read messages coming from the Arduino."""
 
     while _running:
-
         try:
             if _ser.in_waiting:
                 line = _ser.readline()
@@ -63,7 +56,6 @@ def _serial_reader():
 
                 if text and _show_serial:
                     print(f"ARDUINO: {text}")
-
             else:
                 time.sleep(0.01)
 
@@ -72,33 +64,34 @@ def _serial_reader():
             break
 
 
-def send_uint16(value, command):
-    """Send a 16-bit value using the robot's 5-byte protocol."""
+def send(command):
+    """Send a text command to the Arduino."""
 
     if _ser is None or not _ser.is_open:
         print("ARDUINO ERROR: Serial connection is not open.")
         return
 
-    value = max(0, min(65535, int(value)))
+    message = f"{command}\n"
 
-    high_byte = (value >> 8) & 0xFF
-    low_byte = value & 0xFF
-
-    packet = bytes([
-        START_BYTE,
-        command,
-        high_byte,
-        low_byte,
-        END_BYTE,
-    ])
-
-    _ser.write(packet)
+    _ser.write(message.encode("utf-8"))
 
 
 def send_mouth_level(level):
-    """Send the current speech amplitude to the Arduino."""
-    
-    send_uint16(level, MOUTH_LEVEL)
+    """Send speech amplitude, 0-255."""
+
+    level = max(0, min(255, int(level)))
+
+    send(f"MOUTH {level}")
+
+
+def send_lights(hue, colour_brightness, white_brightness):
+    """Set the RGBW rings. All values are 0-255."""
+
+    hue = max(0, min(255, int(hue)))
+    colour_brightness = max(0, min(255, int(colour_brightness)))
+    white_brightness = max(0, min(255, int(white_brightness)))
+
+    send(f"LIGHTS {hue} {colour_brightness} {white_brightness}")
 
 
 def stop():

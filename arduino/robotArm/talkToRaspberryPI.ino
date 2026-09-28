@@ -1,61 +1,126 @@
-#define SOM 0xA1  // Start of message byte
-#define EOM 0x55 // End of message byte
+// ============================================================================
+// RASPBERRY PI SERIAL COMMUNICATION
+// ============================================================================
+// Commands are plain ASCII terminated by newline.
+//
+// MOUTH 200
+// LIGHT 30 180 100
+// DIRECTION 135
+// LASER 1
+//
+// LIGHT <hue> <colour brightness> <white brightness>
+// Light values are 0-255.
+// Hue 0-255 represents the full colour wheel.
 
 void talkToRaspberryPI() {
-  if (Serial.available() >= 5) { // Minimum bytes required (SOM, Command, High byte, Low byte, EOM)
-    uint8_t start_byte = Serial.read(); // Read the start of message byte
-    
-    // Check if the start byte is correct
-    if (start_byte == SOM) {
-      uint8_t command_byte = Serial.read(); // Read the command byte
-      uint8_t high_byte = Serial.read(); // Read the high byte
-      uint8_t low_byte = Serial.read(); // Read the low byte
-      uint8_t end_byte = Serial.read(); // Read the end of message byte
-      
-      // Check if the end byte is correct
-      if (end_byte == EOM) {
-        uint16_t received_value = low_byte | (high_byte << 8);
 
-        // Process the received value based on the command byte
-        switch (command_byte) {
-          case 0xB0:
-            Serial.print(received_value);
-            Serial.println("   = DIRECTION");
-            myArm.setPosition(6, received_value, 500, false);
-            // Perform action for command byte 0xB0
-            break;
-
-          case 0xB1:
-            Serial.print(received_value);
-            Serial.println("   = LASER ON!!");
-            // Perform action for command byte 0xB1
-            break;
-
-          case 0xA5:
-            mouthEffects(received_value);
-            // Perform action for command byte 0xA5
-            break;
-
-            case 0xA6:
-            Serial.print(high_byte);
-            Serial.println("   = BRIGHTNESS");
-            Serial.print(low_byte);
-            Serial.println("   = HUE");
-            // Perform action for command byte 0xA5
-            break;
-
-          default:
-            Serial.println("Command byte is not recognized. Ignoring...");
-            // Perform action for unrecognized command byte
-            break;
-        }
-      } else {
-        // If the end byte is incorrect, print an error
-        Serial.println("Error: End of message byte incorrect. Message discarded.");
-      }
-    } else {
-      // If the start byte is incorrect, print an error
-      Serial.println("Error: Start of message byte incorrect. Message discarded.");
-    }
+  if (Serial.available() == 0) {
+    return;
   }
+
+  // Read one complete command and remove trailing spaces / CR
+  String command = Serial.readStringUntil('\n');
+  command.trim();
+
+  if (command.length() == 0) {
+    return;
+  }
+
+  // --------------------------------------------------------------------------
+  // MOUTH <level>
+  // --------------------------------------------------------------------------
+  if (command.startsWith("MOUTH ")) {
+    int value = command.substring(6).toInt();
+    value = constrain(value, 0, 65535);
+
+    mouthEffects(value);
+
+    return;
+  }
+
+  // --------------------------------------------------------------------------
+  // LIGHT <hue> <colour brightness> <white brightness>
+  // --------------------------------------------------------------------------
+  if (command.startsWith("LIGHTS ")) {
+    int hue;
+    int colourBrightness;
+    int whiteBrightness;
+
+    int result = sscanf(
+      command.c_str(),
+      "LIGHTS %d %d %d",
+      &hue,
+      &colourBrightness,
+      &whiteBrightness
+    );
+
+    if (result != 3) {
+      Serial.println("ERROR: LIGHTS requires 3 values");
+      return;
+    }
+
+    hue = constrain(hue, 0, 255);
+    colourBrightness = constrain(colourBrightness, 0, 255);
+    whiteBrightness = constrain(whiteBrightness, 0, 255);
+
+    // Convert 0-255 hue to 0-360 degrees
+    float hueDegrees = ((float)hue / 255.0) * 360.0;
+
+    // Convert hue to RGB
+    HSVtoRGB(
+      hueDegrees,
+      100.0,
+      100.0,
+      red,
+      green,
+      blue
+    );
+
+    // Apply colour brightness
+    red   = ((uint16_t)red   * colourBrightness) / 255;
+    green = ((uint16_t)green * colourBrightness) / 255;
+    blue  = ((uint16_t)blue  * colourBrightness) / 255;
+    white = whiteBrightness;
+
+    // Set RGBW colour and turn solid light effect on
+    neoColor = strip.Color(red, green, blue, white);
+    neoEffect = 1;
+
+    Serial.print("LIGHTS hue=");
+    Serial.print(hue);
+    Serial.print(" colour=");
+    Serial.print(colourBrightness);
+    Serial.print(" white=");
+    Serial.println(whiteBrightness);
+    return;
+  }
+
+  // --------------------------------------------------------------------------
+  // DIRECTION <angle>
+  // --------------------------------------------------------------------------
+  if (command.startsWith("DIRECTION ")) {
+    int value = command.substring(10).toInt();
+
+    Serial.print("DIRECTION ");
+    Serial.println(value);
+
+    myArm.setPosition(6, value, 500, false);
+    return;
+  }
+
+  // --------------------------------------------------------------------------
+  // LASER <0/1>
+  // Currently only reports command, matching old behaviour.
+  // --------------------------------------------------------------------------
+  if (command.startsWith("LASER ")) {
+    int value = command.substring(6).toInt();
+
+    Serial.print("LASER ");
+    Serial.println(value);
+    return;
+  }
+
+  // Unknown command
+  Serial.print("ERROR: Unknown command: ");
+  Serial.println(command);
 }

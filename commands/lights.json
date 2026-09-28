@@ -13,7 +13,16 @@
         "low": 25,
         "medium": 50,
         "high": 75,
-        "full": 100
+        "full": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "increase": "increase",
+        "brighter": "increase",
+        "raise": "increase",
+        "decrease": "decrease",
+        "lower": "decrease",
+        "dim": "decrease",
+        "dimmer": "decrease"
       },
       "number_parameter": {
         "suffix": "percent",
@@ -30,14 +39,7 @@
         "blue": "blue",
         "indigo": "indigo",
         "violet": "violet",
-        "warm white": "warm_white",
-        "cool white": "cool_white"
-      }
-    },
-    "temperature": {
-      "parameters": {
-        "warmer": "warmer",
-        "cooler": "cooler"
+        "white": "white"
       }
     }
   }
