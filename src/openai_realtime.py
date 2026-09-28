@@ -100,7 +100,7 @@ load_dotenv()
 
 client = OpenAI()
 
-def open():
+def open(initial_question=None):
     # ---------------------------------------------------------------------------
     # Play startup message while connection opens
     # ---------------------------------------------------------------------------
@@ -132,6 +132,19 @@ def open():
             "session": {
 
                 "model": "gpt-live-1",
+
+                "input": [
+                    {
+                        "type": "message",
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": initial_question
+                            }
+                        ]
+                    }
+                ] if initial_question else [],
 
                 "audio": {
                     "format": {

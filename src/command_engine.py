@@ -115,6 +115,7 @@ COMMAND_DIRECTORY = PROJECT_ROOT / "commands"
 
 CONTEXT_SECONDS = 10.0
 ATTENTION_SECONDS = 45.0
+QUESTION_INTERACTION_SECONDS = 10.0
 
 WAKE_WORDS = ["robot", "spencer", "spenser"]
 
@@ -322,6 +323,36 @@ class CommandEngine:
 
         return round(confidence, 2)
 
+    def recent_question_interaction(self):
+        """
+        Return True if there is recent evidence that the user is
+        currently interacting with the robot.
+
+        Questions and conversational requests may be sent to Big Brain
+        when they occur shortly after either:
+
+            - a wake word, or
+            - a successfully understood deterministic command.
+
+        This is deliberately separate from:
+            - subject context
+            - general attention confidence
+        """
+
+        now = time.monotonic()
+
+        wake_recent = (
+            self.last_wake_time > 0.0
+            and now - self.last_wake_time <= QUESTION_INTERACTION_SECONDS
+        )
+
+        command_recent = (
+            self.last_command_time > 0.0
+            and now - self.last_command_time <= QUESTION_INTERACTION_SECONDS
+        )
+
+        return wake_recent or command_recent
+
     def confirmation_speech_finished(self):
         """Start the grace period after a confirmation question finishes speaking."""
 
@@ -400,7 +431,17 @@ class CommandEngine:
         # Remove punctuation added by the speech recogniser.
         # For example: "lights." becomes "lights"
         # and "Spencer." becomes "Spencer".
-        clean_text = re.sub(r"[^\w\s]", "", text.lower())
+        clean_text = text.lower()
+
+        # Normalise common question contractions before removing punctuation.
+        clean_text = re.sub(r"\bwhat['’]s\b", "what is", clean_text)
+        clean_text = re.sub(r"\bwho['’]s\b", "who is", clean_text)
+        clean_text = re.sub(r"\bwhere['’]s\b", "where is", clean_text)
+        clean_text = re.sub(r"\bwhen['’]s\b", "when is", clean_text)
+        clean_text = re.sub(r"\bhow['’]s\b", "how is", clean_text)
+
+        # Remove remaining punctuation added by the speech recogniser.
+        clean_text = re.sub(r"[^\w\s]", "", clean_text)
 
         all_words = clean_text.split()
 
@@ -471,36 +512,81 @@ class CommandEngine:
 
         explicit_subject = self.find_explicit_subject(words)
 
+
+        # ---------------------------------------------------------
+        # BIG BRAIN FALLBACK
+        # ---------------------------------------------------------
+        #
+        # A question or conversational request can be considered
+        # addressed to the robot when it occurs within 10 seconds
+        # of either:
+        #
+        #   - a wake word, or
+        #   - a successfully understood command.
+        #
+        # Do this BEFORE applying remembered subject context.
+        #
+        # Otherwise something like:
+        #
+        #   "Spencer, turn the lights on"
+        #   "What is the capital of Spain?"
+        #
+        # could incorrectly inherit "lights" as its subject and
+        # become an ambiguous lights command.
+        #
+        # An explicitly named deterministic subject still takes
+        # priority. For example:
+        #
+        #   "Spencer, can you turn the lights off?"
+        #
+        # contains conversational wording, but explicitly refers
+        # to the lights and should therefore remain deterministic.
+        # ---------------------------------------------------------
+
+        if (
+            explicit_subject is None
+            and looks_like_question(words)
+            and self.recent_question_interaction()
+        ):
+            big_brain = self.definitions.get("big_brain")
+
+            if big_brain:
+                fallback = big_brain.get("fallback", {})
+                confirmation = fallback.get("confirmation", {})
+
+                self.pending_confirmation = {
+                    "subject": "big_brain",
+                    "action": confirmation.get("action"),
+                    "value": confirmation.get("parameter"),
+                }
+
+                return {
+                    "status": "confirmation_required",
+                    "heard": text,
+                    "subject": "big_brain",
+                    "action": confirmation.get("action"),
+                    "value": confirmation.get("parameter"),
+                    "prompt": confirmation.get("prompt"),
+                }
+
+
+        # ---------------------------------------------------------
+        # DETERMINISTIC SUBJECT
+        # ---------------------------------------------------------
+        #
+        # If no explicit subject was spoken, try the short-lived
+        # subject context from the previous successful command.
+        # ---------------------------------------------------------
+
         subject = explicit_subject or self.recent_subject()
 
+
+        # No deterministic subject and no Big Brain fallback.
         if subject is None:
-
-            if wake_detected and looks_like_question(words):
-
-                big_brain = self.definitions.get("big_brain")
-
-                if big_brain:
-                    fallback = big_brain.get("fallback", {})
-                    confirmation = fallback.get("confirmation", {})
-                    self.pending_confirmation = {
-                        "subject": "big_brain",
-                        "action": confirmation.get("action"),
-                        "value": confirmation.get("parameter"),
-                    }
-
-                    return {
-                        "status": "confirmation_required",
-                        "heard": text,
-                        "subject": "big_brain",
-                        "action": confirmation.get("action"),
-                        "value": confirmation.get("parameter"),
-                        "prompt": confirmation.get("prompt"),
-                    }
-
             return {
                 "status": "not_deterministic",
                 "heard": text,
-            }
+            }        
 
         definition = self.definitions[subject]
 

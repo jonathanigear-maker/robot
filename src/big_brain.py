@@ -2,7 +2,7 @@ from src import openai_realtime
 from src import moonshine
 
 
-def open():
+def open(question=None):
     """Open the online OpenAI real-time voice conversation."""
 
     print("BIG BRAIN: Opening...")
@@ -10,7 +10,7 @@ def open():
     moonshine.pause()
 
     try:
-        openai_realtime.open()
+        openai_realtime.open(question)
 
     finally:
         moonshine.resume()

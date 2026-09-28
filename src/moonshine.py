@@ -85,6 +85,7 @@ engine = CommandEngine()
 _transcriber = None
 _stream = None
 _running = False
+pending_big_brain_question = None
 
 
 # ===========================================================================
@@ -156,8 +157,8 @@ def switch_to_big_brain():
     """
 
     print("MOONSHINE: Opening Big Brain...")
-
-    open_big_brain()
+    print("PASSING TO BIG BRAIN:", repr(pending_big_brain_question))
+    open_big_brain(pending_big_brain_question)
 
     print("MOONSHINE: Big Brain finished.")
 
@@ -174,7 +175,7 @@ def heard_line(line):
 
     line.text contains the actual recognised words.
     """
-    
+    global pending_big_brain_question
     text = line.text
 
     # Ask CommandEngine what the recognised speech means.
@@ -216,6 +217,8 @@ def heard_line(line):
 
     elif command["status"] == "confirmation_required":
 
+        pending_big_brain_question = text
+        print("PENDING BIG BRAIN QUESTION:", pending_big_brain_question)
         voice_process = big_brain_confirmation()
 
         # Wait for the spoken confirmation question to finish in another

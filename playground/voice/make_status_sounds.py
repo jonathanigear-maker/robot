@@ -136,8 +136,8 @@ for number, text in enumerate(phrases, start=1):
         response_format="wav",
         instructions=(
             "Speak in British English. Calm, restrained, traditional British "
-            "butler manner. Slightly robotic and matter-of-fact. "
-            "Do not sound enthusiastic."
+            "butler manner, matter-of-fact and to the point. "
+            "this is a follow up to ask for assistance as you cannot answer the question yourself. So second part of a reply"
         ),
     ) as response:
 
