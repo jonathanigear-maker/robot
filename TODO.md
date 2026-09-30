@@ -8,16 +8,19 @@ Living checklist for the robot project. Tick items off as they are completed and
 - [x] Turn off Automatic Login so GNOME keyring/RDP credentials survive reboot
 - [x] Confirm Remote Login / RDP works after a full reboot/cold boot without local intervention
 - [x] Create the Pi 5 Python virtual environment for robot voice/AI code
-- [ ] Install/recreate required Python packages in the venv
-- [ ] Confirm VS Code/terminal workflow uses the intended venv
+- [x] Install/recreate required Python packages in the venv
+- [x] Confirm VS Code/terminal workflow uses the intended venv
 - [x] Set up/test SSH X11 forwarding from Windows (PowerShell + VcXsrv) for lightweight Pi GUI applications
 - [x] Test Thonny over the X11 tunnel with GNOME/gdm3 stopped
 - [ ] Test Arduino IDE over the X11 tunnel with GNOME/gdm3 stopped
 - [ ] Reserve/fix the robot Pi's IP address in the router (prefer DHCP reservation)
 - [ ] Reboot and confirm the Pi receives the same IP
-- [ ] Gather the latest Arduino sketch, ESP32 eye firmware and supporting Arduino files/libraries
-- [ ] Upload the robot's Arduino/ESP32 source files to GitHub as legacy/reference before refactoring
-- [ ] Identify which uploaded sketch/firmware versions are actually the latest working versions
+- [x] Gather the current Arduino sketch and supporting Arduino files/libraries
+- [ ] Recover/confirm the latest ESP32 eye firmware
+- [x] Upload current Arduino source files/libraries to GitHub
+- [ ] Upload/preserve the ESP32 eye firmware in GitHub
+- [x] Identify the current working Arduino robotArm sketch
+- [ ] Confirm which ESP32 eye firmware is the latest working version
 - [ ] Install Arduino IDE 1.8.19 Legacy ARM64 on Pi 5 and reproduce required board packages/libraries
 - [ ] Investigate slow GNOME app launching (Terminal/Settings sometimes take a long time or need repeated clicks)
 - [ ] Compare launching Terminal/Settings from desktop vs from an already-open terminal
@@ -29,15 +32,17 @@ Living checklist for the robot project. Tick items off as they are completed and
 
 ## Current priority
 
-Development order agreed:
+Current focus is **physical hardware integration and packaging** before starting the ROS migration.
 
-1. Finish practical Pi setup (remote access, venv, fixed/reserved IP, preserve Arduino source)
-2. Voice on the Raspberry Pi 5
-3. Local SLM command interpretation
-4. ROS command/behaviour integration without hardware movement
-5. Arduino and subsystem communication
-6. Arm / ros2_control / MoveIt hardware integration
-7. Higher-level behaviours, tracking and OpenAI conversation
+1. Find and test the final ReSpeaker position/orientation; keep microphones acoustically clear and consider side-facing sound guides/horns only if needed
+2. Mount the LiDAR on the lower front platform behind the NeoKeys, checking laser-plane clearance and useful field of view
+3. Find and mount the new physical speaker; check sound quality, clearance and service access
+4. Reorganise the internal layout as needed for the ReSpeaker, speaker, LiDAR wiring and incoming motor controller/power hardware
+5. Install and test the new motor controller/power hardware when it arrives
+6. Design and 3D print an improved enclosure/mounting arrangement once component positions are settled
+7. Reconnect the physical encoders and verify their hardware/Arduino operation
+8. Finish the NeoKey/encoder control migration so the Pi owns authoritative colour/function state
+9. Revisit ROS architecture and begin the incremental ROS migration after the hardware layout is stable
 
 ---
 
@@ -122,10 +127,10 @@ local SLM
 
 ## 5. Pi <-> Arduino interface
 
-- [ ] Decide physical Pi-Arduino connection and serial device setup
-- [ ] Define simple human-readable serial protocol
+- [x] Decide physical Pi-Arduino connection and serial device setup (USB serial `/dev/ttyACM0`, 9600 baud)
+- [x] Define initial human-readable serial protocol (`LIGHTS ...`, `MOUTH ...`)
 - [ ] Implement single Arduino bridge/interface node on Pi
-- [ ] Implement non-blocking serial parser on Arduino
+- [x] Implement serial command parsing on Arduino and verify Pi -> Arduino commands
 - [ ] Add acknowledgements/status where useful
 - [ ] Add error messages
 - [ ] Add timeout/watchdog behaviour
@@ -146,13 +151,34 @@ ARM_POS,...
 ERROR,...
 ```
 
-## 6. Arduino I2C cleanup
+## 6. Hardware integration / Arduino I2C cleanup
 
-- [ ] Recover/identify latest Arduino sketch
+### Physical integration
+
+- [ ] Finalise ReSpeaker mounting position and orientation
+- [ ] Check ReSpeaker microphone clearance with surrounding structure
+- [ ] Prototype/print side sound guides or horns if the final mounting needs them
+- [ ] Finalise LiDAR position on lower front platform behind NeoKeys
+- [ ] Check LiDAR laser plane clears NeoKeys, arm/body structure and other obstructions
+- [ ] Finalise speaker position and mounting
+- [ ] Check speaker acoustic opening, internal clearance and service access
+- [ ] Plan revised internal component layout and cable routing
+- [ ] Install and wire new motor controller/power hardware when it arrives
+- [ ] Re-check power distribution and startup behaviour after motor controller installation
+- [ ] Design improved 3D-printed enclosure/mounts around the settled component layout
+- [ ] Print/test enclosure and revise for fit, ventilation, acoustics and service access
+- [ ] Physically reconnect encoder A and encoder B
+- [ ] Verify encoder addresses, buttons and rotation inputs after reconnection
+
+### Arduino / I2C cleanup
+
+- [x] Recover/identify current working Arduino sketch
 - [ ] Recover latest ESP32 eye firmware
-- [ ] Upload all current Arduino/ESP32 project source to GitHub before modifying it
+- [x] Upload current Arduino project source/libraries to GitHub
+- [ ] Preserve/upload current ESP32 eye firmware to GitHub
 - [ ] Confirm actual I2C addresses currently in use
-- [ ] Remove obsolete DF2301Q voice-module code if no longer needed
+- [x] Make obsolete DF2301Q voice-module hardware optional/disabled at compile time
+- [ ] Remove DF2301Q code completely once no longer wanted as legacy support
 - [ ] Replace old global timing/delays with per-device scheduling
 - [ ] Add I2C error counters
 - [ ] Add timeout/failure handling
@@ -178,7 +204,7 @@ ERROR,...
 - [ ] Implement ROS LED controller
 - [ ] Read physical encoder changes through Arduino
 - [ ] Publish relative encoder changes to ROS
-- [ ] Keep authoritative brightness/colour state on Pi
+- [ ] Keep authoritative brightness/colour state on Pi (partly implemented; finish with NeoKey/encoder migration)
 - [ ] Send absolute LED state back to Arduino
 - [ ] Support temporary animation overrides without losing user setting
 - [ ] Test latency of encoder -> ROS -> LED round trip
@@ -273,6 +299,7 @@ References:
 - [x] Create ROS command-flow example
 - [x] Create arm/MoveIt integration notes
 - [x] Create living TODO checklist
+- [x] Refresh TODO after working voice/Arduino integration and switch immediate focus to hardware packaging (2026-09-30)
 - [ ] Keep this file updated as tasks are completed or priorities change
 - [ ] Preserve old Arduino/ESP32 code in repository as legacy/reference
 - [ ] Correct/trim obsolete notes when experiments disprove an assumption
