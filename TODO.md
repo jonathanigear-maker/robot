@@ -190,6 +190,23 @@ ERROR,...
 
 ## 7. Eyes
 
+### TFT / eye-controller performance
+
+- [ ] Benchmark 240x240 full-screen `pushSprite()` performance with 100 consecutive pushes at the current 27 MHz SPI clock
+- [ ] Repeat the identical benchmark at 40 MHz and compare average frame time/effective throughput
+- [ ] Check 40 MHz operation for corruption, flicker, partial frames or unreliable display initialisation
+- [ ] If 40 MHz is stable, optionally test 80 MHz and retain the fastest reliably stable setting
+- [ ] Move TFT drawing/animation out of `Wire.onReceive()`; keep the I2C receive callback limited to reading/storing commands and returning quickly
+- [ ] Move eye movement interpolation/easing onto each ESP32 eye controller so Arduino can send one target X/Y plus movement duration rather than many incremental positions
+- [ ] Convert blink/open/close animations to non-blocking state-machine/timed animation in `loop()`
+- [ ] Preserve/restore gaze position correctly through blink and eyelid animations
+- [ ] Add dynamic pupil-size animation; e.g. brief pupil dilation when Spencer recognises a known face
+- [ ] Rebuild the 100x100 eye sprite only when pupil appearance/size changes; continue reusing the rendered sprite for ordinary gaze movement
+- [ ] Evaluate TFT_eSPI DMA only after SPI-speed/callback improvements are measured; use double buffering if DMA overlap is worthwhile
+- [ ] Re-measure blink and eye-motion frame times after each optimisation
+
+### Eye behaviour / ROS integration
+
 - [ ] Confirm current ESP32 eye command protocol
 - [ ] Fix/replace old eye random-movement timer logic
 - [ ] Implement ROS eye controller
