@@ -272,7 +272,27 @@ References:
 - ROS xArm reference implementation: https://github.com/daira-ai/xArm_Lewansoul_ROS
 - Project arm notes: `docs/arm-moveit-integration.md`
 
-## 11. Tracking / head behaviour
+## 11. OpenMV vision / face recognition
+
+- [x] Confirm OpenMV Cam RT1062 and working BlazeFace face detection
+- [x] Build SD-card face-image collector using BlazeFace crops
+- [x] Prevent collector from overwriting existing face images by continuing filename numbering
+- [x] Draw BlazeFace preview rectangle only after copying/saving the training crop so the box is not learned by the classifier
+- [ ] Test tighter face crops for identity classification; reduce collector margin from 30% to ~10% and inspect results before recollecting the full dataset
+- [ ] Recollect a balanced OpenMV-native face dataset using the chosen crop; target roughly 150–200 genuinely varied images per known person
+- [ ] Keep pose, expression, distance, lighting and glasses/no-glasses variation in each person's dataset; avoid large runs of near-identical frames
+- [ ] Retrain the 96x96 Edge Impulse MobileNetV2 0.35 classifier on the improved camera-matched dataset
+- [ ] Compare known-person accuracy with and without an Unknown training class
+- [ ] Test unknown faces as held-out test data and record the maximum class scores to see whether confidence-threshold rejection is practical
+- [ ] Test live temporal recognition: combine several classifications of the same tracked face (rolling scores / majority consistency) instead of trusting one frame
+- [ ] Choose recognition acceptance rules from measured data (score threshold plus repeated agreement), not an arbitrary confidence percentage
+- [ ] If 96x96 remains inadequate after crop/data improvements, compare MobileNetV2 0.5 at the same resolution before increasing capture resolution
+- [ ] Deploy the quantized INT8 classifier to the RT1062 and measure real inference time/RAM alongside BlazeFace
+- [ ] Define compact OpenMV -> Pi I2C face result message (person ID, confidence/score, x/y and tracking state)
+- [ ] Later investigate face embeddings as an alternative that would let Spencer learn new people without retraining the classifier
+- [ ] Add selectable OpenMV vision modes (face, cards, objects/colour, tags, laser, gestures) with Pi-controlled mode switching
+
+## 12. Tracking / head behaviour
 
 - [ ] Choose/update face-tracking perception source
 - [ ] Publish tracked target in an appropriate coordinate frame
@@ -287,7 +307,7 @@ References:
 - [ ] Monitor proximity to joint limits/collisions/awkward configurations
 - [ ] Keep gaze tracking as primary objective during reconfiguration
 
-## 12. Personality and behaviours
+## 13. Personality and behaviours
 
 - [ ] Define basic reusable actions: blink, look, LED state, head pose, etc.
 - [ ] Implement SLEEP behaviour
@@ -297,7 +317,7 @@ References:
 - [ ] Add games/fun interactions after core control is reliable
 - [ ] Ensure higher-level behaviours cannot bypass subsystem safety/controller authority
 
-## 13. OpenAI / conversational layer — later
+## 14. OpenAI / conversational layer — later
 
 - [x] Reintroduce OpenAI Realtime voice conversation
 - [x] Confirm OpenAI Live microphone and speaker audio on Pi 5
