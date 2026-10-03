@@ -16,11 +16,11 @@ Living checklist for the robot project. Tick items off as they are completed and
 - [ ] Reserve/fix the robot Pi's IP address in the router (prefer DHCP reservation)
 - [ ] Reboot and confirm the Pi receives the same IP
 - [x] Gather the current Arduino sketch and supporting Arduino files/libraries
-- [ ] Recover/confirm the latest ESP32 eye firmware
+- [x] Recover/confirm the latest ESP32 eye firmware
 - [x] Upload current Arduino source files/libraries to GitHub
 - [ ] Upload/preserve the ESP32 eye firmware in GitHub
 - [x] Identify the current working Arduino robotArm sketch
-- [ ] Confirm which ESP32 eye firmware is the latest working version
+- [x] Confirm which ESP32 eye firmware is the latest working version
 - [ ] Install Arduino IDE 1.8.19 Legacy ARM64 on Pi 5 and reproduce required board packages/libraries
 - [ ] Investigate slow GNOME app launching (Terminal/Settings sometimes take a long time or need repeated clicks)
 - [ ] Compare launching Terminal/Settings from desktop vs from an already-open terminal
@@ -173,7 +173,7 @@ ERROR,...
 ### Arduino / I2C cleanup
 
 - [x] Recover/identify current working Arduino sketch
-- [ ] Recover latest ESP32 eye firmware
+- [x] Recover latest ESP32 eye firmware
 - [x] Upload current Arduino project source/libraries to GitHub
 - [ ] Preserve/upload current ESP32 eye firmware to GitHub
 - [ ] Confirm actual I2C addresses currently in use
