@@ -1,7 +1,11 @@
 void laserOn(){
-  digitalWrite(LASER_PIN, HIGH);
+
+digitalWrite(LASER_PIN, 1);
+  
 }
 
 void laserOff(){
-  digitalWrite(LASER_PIN, LOW);
+
+digitalWrite(LASER_PIN, 0);
+  
 }
