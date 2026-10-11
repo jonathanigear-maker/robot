@@ -107,9 +107,9 @@ def start():
 
 
 def stop():
-    """Stop capturing audio and release the ReSpeaker."""
+    """Stop capturing audio and wait for the audio worker to finish."""
 
-    global _stream, _running
+    global _stream, _running, _worker_thread
 
     _running = False
 
@@ -117,5 +117,10 @@ def stop():
         _stream.stop()
         _stream.close()
         _stream = None
+
+    # Wait for the audio worker to finish.
+    if _worker_thread is not None:
+        _worker_thread.join()
+        _worker_thread = None
 
     print("RESPEAKER: Closed.")
