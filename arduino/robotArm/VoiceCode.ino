@@ -1,5 +1,5 @@
 void checkForSound(){
-  
+#ifdef USE_DF2301Q  
     CMDID = 0;
     if (AIBool == false){
     CMDID = DF2301Q.getCMDID();
@@ -435,4 +435,6 @@ switch(CMDID) {
     }
   }
   //noTone(speakerPin);   
+  #endif
 }
+

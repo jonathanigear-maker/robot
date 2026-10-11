@@ -145,15 +145,15 @@ void buttonALongRelease(){
 
 
 void buttonBShortPress(){
-     //Serial.println("Button B: Short Press");
-     if (AIBool == false){
-        Serial.println("openAI");
-        AIBool = true;
-        }
-     else if (AIBool == true){
-        Serial.println("closeAI");
-        AIBool = false;
-        }
+     Serial.println("Button B: Short Press");
+         laserBool = !laserBool;
+
+    if (laserBool) {
+        laserOn();
+    } else {
+        laserOff();
+    }
+        
 }
 
  

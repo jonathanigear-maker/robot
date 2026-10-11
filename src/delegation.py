@@ -1,8 +1,8 @@
 from dotenv import load_dotenv
 from openai import OpenAI
-
+import json
 from src.robot_functions import exit_ai_mode
-
+from src import lights_functions
 
 load_dotenv()
 
@@ -89,6 +89,42 @@ Give the useful answer directly.
                     "additionalProperties": False
                 },
                 "strict": True
+            },
+            {
+                "type": "function",
+                "name": "control_lights",
+                "description": (
+                    "Control Robot's physical lights. Can turn the lights on or off, "
+                    "change their colour, or change their brightness."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": [
+                                "power",
+                                "colour",
+                                "brightness"
+                            ]
+                        },
+                        "value": {
+                            "type": ["string", "integer"],
+                            "description": (
+                                "For power: on or off. "
+                                "For colour: red, orange, yellow, green, blue, "
+                                "indigo, violet, or white. "
+                                "For brightness: increase, decrease, or a percentage 0-100."
+                            )
+                        }
+                    },
+                    "required": [
+                        "action",
+                        "value"
+                    ],
+                    "additionalProperties": False
+                },
+                "strict": True
             }
         ],
 
@@ -97,11 +133,25 @@ Give the useful answer directly.
     )
 
     for item in response.output:
+        print("RESPONSE ITEM:", item)
 
         if (
             item.type == "function_call"
             and item.name == "exit_ai_mode"
         ):
             return exit_ai_mode()
+
+        elif (
+            item.type == "function_call"
+            and item.name == "control_lights"
+        ):
+            args = json.loads(item.arguments)
+
+            print("LIGHT FUNCTION CALLED:", args)
+
+            lights_functions.handle(
+                args["action"],
+                args["value"]
+            )
 
     return response.output_text

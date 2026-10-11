@@ -108,19 +108,20 @@ void talkToRaspberryPI() {
     return;
   }
 
-  // --------------------------------------------------------------------------
-  // LASER <0/1>
-  // Currently only reports command, matching old behaviour.
-  // --------------------------------------------------------------------------
-  if (command.startsWith("LASER ")) {
-    int value = command.substring(6).toInt();
+// --------------------------------------------------------------------------
+// LASER ON / LASER OFF
+// --------------------------------------------------------------------------
+if (command == "LASER ON") {
+    laserOn();
 
-    Serial.print("LASER ");
-    Serial.println(value);
+    Serial.println("LASER ON");
     return;
-  }
+}
 
-  // Unknown command
-  Serial.print("ERROR: Unknown command: ");
-  Serial.println(command);
+if (command == "LASER OFF") {
+    laserOff();
+
+    Serial.println("LASER OFF");
+    return;
+}
 }

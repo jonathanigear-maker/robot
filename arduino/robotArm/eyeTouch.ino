@@ -29,7 +29,7 @@ void queryTouch(){
               myArm.setPosition(lookfront, 6, 1000, false);
               eyeOpen=true;
               Serial.println("opening eyes");
-              DF2301Q.playByCMDID(1);
+              
               delay(1000);
               return;
           }

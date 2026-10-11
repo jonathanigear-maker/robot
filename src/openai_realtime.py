@@ -222,10 +222,6 @@ def open(initial_question=None):
                 # the ReSpeaker playback device.
                 link_sound.join()
 
-                subprocess.run([
-                "aplay",
-                "/home/sodigece/robot/sounds/ai_link_ready.wav"
-                ])
 
                 break
 
@@ -309,7 +305,8 @@ def open(initial_question=None):
         # -----------------------------------------------------------------------
 
         current_speaker = None
-
+        exit_pending = False
+        last_audio_time = 0.0
         # Text currently being spoken by the user.
         current_user_turn = ""
 
@@ -358,7 +355,7 @@ def open(initial_question=None):
             delegation_id,
             history_snapshot
         ):
-
+            nonlocal exit_pending, last_audio_time
             try:
 
                 result = handle_task(
@@ -379,11 +376,23 @@ def open(initial_question=None):
                     )
                     print()
 
-                    print("CLOSING LIVE SESSION NOW")
+                    print("EXIT REQUESTED - WAITING FOR FINAL AUDIO")
+                    exit_pending = True
+
+                    # Wait until OpenAI has stopped sending audio
+                    while True:
+                        time.sleep(0.1)
+
+                        if last_audio_time > 0 and time.monotonic() - last_audio_time > 0.5:
+                            break
+
+                    print("FINAL AUDIO RECEIVED - CLOSING LIVE SESSION")
 
                     connection.send({
                         "type": "session.close"
                     })
+
+                    
 
                     return
 
@@ -433,7 +442,7 @@ def open(initial_question=None):
             while True:
 
                 event = connection.recv()
-
+                
 
                 # ---------------------------------------------------------------
                 # Delegation
@@ -532,7 +541,13 @@ def open(initial_question=None):
                         event.delta
                     )
 
-                    # audio_output now owns the streaming speaker.
+                    # Check whether this chunk contains actual audible audio
+                    samples = np.frombuffer(audio, dtype=np.int16)
+                    level = np.sqrt(np.mean(samples.astype(np.float32) ** 2))
+
+                    if level > 100:
+                        last_audio_time = time.monotonic()
+
                     audio_output.write_stream(audio)
 
 

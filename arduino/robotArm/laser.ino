@@ -1,6 +1,6 @@
   //laser on
   void laserOn(){
-        huskylens.writeAlgorithm(ALGORITHM_OBJECT_RECOGNITION);
+        //huskylens.writeAlgorithm(ALGORITHM_OBJECT_RECOGNITION);
         myArm.setPosition(lookfront, 6, 1000, false);
         laserBool = true;
         lampBool = false;
@@ -13,7 +13,7 @@
   }
 
    void laserOff(){
-        huskylens.writeAlgorithm(ALGORITHM_FACE_RECOGNITION);
+        //huskylens.writeAlgorithm(ALGORITHM_FACE_RECOGNITION);
         laserBool = false;
         lampBool = false;
         faceRecognition = true;

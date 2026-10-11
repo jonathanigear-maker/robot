@@ -11,7 +11,7 @@
 #include <xArmServoController.h>
 #include <Wire.h>
 #include <FABRIK2D.h>
-
+#include "DFRobot_MatrixLidar.h"
 
 //DEFINITIONS
 #define NEO_PIN     7
@@ -27,15 +27,34 @@
 #define BLUE_BUTTON 16
 #define RED_BUTTON 15
 
+//#define USE_DF2301Q
+//#define USE_ENCODERS
+#define USE_MATRIX_LIDAR
+
 //INSTANCE CLASSES
+
+#ifdef USE_DF2301Q
 DFRobot_DF2301Q_I2C DF2301Q;
+#endif
+
+#ifdef USE_ENCODERS
+EncBreakout encA(Wire, 0x0E, EncBreakout::DEFAULT_BRIGHTNESS, 1, 2);
+EncBreakout encB(Wire, 0x0F, EncBreakout::DEFAULT_BRIGHTNESS, 1, 2);
+#endif
+
+#ifdef USE_MATRIX_LIDAR
+  DFRobot_MatrixLidar_I2C tof(0x31);
+  uint16_t lidarData[16];
+  bool lidarReady = false;
+#endif
+
 HUSKYLENS huskylens;
+
 Adafruit_NeoKey_1x4 neokey;
 Adafruit_NeoPixel strip(NEO_COUNT, NEO_PIN, NEO_GRBW + NEO_KHZ800);
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(MOUTH_COUNT, MOUTH_PIN, NEO_GRB + NEO_KHZ800);
 xArmServoController myArm = xArmServoController(xArm, Serial1);
-EncBreakout encA(Wire, 0x0E, EncBreakout::DEFAULT_BRIGHTNESS, 1, 2);; 
-EncBreakout encB(Wire, 0x0F, EncBreakout::DEFAULT_BRIGHTNESS, 1, 2);;
+
 
 //GLOBAL VARIABLES
   //general
@@ -43,7 +62,7 @@ EncBreakout encB(Wire, 0x0F, EncBreakout::DEFAULT_BRIGHTNESS, 1, 2);;
  bool lampBool = false;
  bool AIBool = false;
  bool queryShutDown = false;
- const unsigned long I2CdelayTime = 100; // Delay time in milliseconds
+ const unsigned long I2CdelayTime = 10; // Delay time in milliseconds
  unsigned long previousI2CMillis = 0;
  int I2CFunction = 1; // Keep track of the current function
  
@@ -131,7 +150,7 @@ const unsigned long buttondelayTime = 100; // Delay time in milliseconds
  int16_t servo3 = 0;   //HEAD UPDOWN
  int16_t  targetServo6 = 0;  //ROTATATION
  int16_t targetServo3 = 0;   //HEAD UPDOWN
-
+ int16_t servoPositions[7] = {0};
  //touch
 uint16_t debounceDelay = 500;  // Adjust this value as needed
 unsigned long lastDebounceTime = 0;
@@ -143,7 +162,14 @@ float ang = 0;
 float radius = 30;
 //float x_offset = 150;
 //float y_offset = 150;
-
+xArmServo servosToRead[6] = {
+  {1, 0},
+  {2, 0},
+  {3, 0},
+  {4, 0},
+  {5, 0},
+  {6, 0}
+};
  
 
  xArmServo lookfront[] = {{1, 900}, //this is the claw servo
@@ -203,6 +229,35 @@ void setup() {
   Wire.begin();
   Serial.println(F("wire started"));
 
+
+    //INITIALISE THE LIDAR
+#ifdef USE_MATRIX_LIDAR
+
+  Serial.println("LIDAR: Initialising...");
+
+  if (tof.begin() == 0) {
+
+    Serial.println("LIDAR: Connected");
+
+    if (tof.setRangingMode(eMatrix_4x4) == 0) {
+      lidarReady = true;
+      Serial.println("LIDAR: Ready (4x4)");
+    } else {
+      Serial.println("LIDAR: Failed to set 4x4 mode");
+    }
+
+  } else {
+    Serial.println("LIDAR: Initialisation failed");
+  }
+
+#endif
+
+
+
+
+
+
+
    //INITIATE HUSKY LENS
    Serial.println("checking husky lens...");
    while (!huskylens.begin(Wire)) {
@@ -211,7 +266,7 @@ void setup() {
    }
    Wire.beginTransmission(0x32);
    int error = Wire.endTransmission();
-   if (error == 0){Serial.println("huskylens found at 0x32");
+   if (error == 0){Serial.println("huskylens found at 0x50");
     #define HUSKYLENS_OK
    }
    else{Serial.print("Huskylens error = ");
@@ -246,27 +301,29 @@ void setup() {
    #endif
 
   //initilise Mic
-   while( !( DF2301Q.begin() ) ) {
-   Serial.println("Communication with device failed, please check connection");
-   delay(100);
-   }
-   Wire.beginTransmission(0x64);
-   error = Wire.endTransmission();
-   if (error == 0){Serial.println("DF2301Q MIC found at 0x64");
-   #define MIC_OK
-   }
-   else{Serial.print("MIC error = ");
-    Serial.println(error);
-   }
-   #ifdef MIC_OK
-   DF2301Q.setVolume(4);
-   DF2301Q.setMuteMode(0);
-   DF2301Q.setWakeTime(listenTime);
-   #endif
+#ifdef USE_DF2301Q
+
+while (!(DF2301Q.begin())) {
+    Serial.println("Communication with device failed");
+    delay(100);
+}
+
+Wire.beginTransmission(0x64);
+error = Wire.endTransmission();
+
+if (error == 0) {
+    Serial.println("DF2301Q MIC found at 0x64");
+    DF2301Q.setVolume(4);
+    DF2301Q.setMuteMode(0);
+    DF2301Q.setWakeTime(listenTime);
+}
+
+#endif
   
 
 
   //INITIALISE ENCODER A
+  #ifdef USE_ENCODERS
   if(!encA.initialise())
    {
    while(true)
@@ -299,7 +356,7 @@ void setup() {
    }
    #ifdef ENCB_OK
    #endif
-   
+   #endif
 
 //LEFT EYE CHECK();
    Wire.beginTransmission(0x09);
@@ -320,6 +377,13 @@ void setup() {
    else{Serial.print("Right Eye error = ");
     Serial.println(error);
    }
+
+
+
+
+
+
+
 
 
 delay(1000);
@@ -390,7 +454,9 @@ void loop() {
   
     if (pressed == true){
     buttonPress();
+    #ifdef USE_ENCODERS
     encoder();
+    #endif
     pressed = false;
     }
   
@@ -398,48 +464,101 @@ void loop() {
     //This code is just to slow down the I2C traffic.
    if (currentI2CMillis - previousI2CMillis >= I2CdelayTime) {
     switch (I2CFunction) {
-      case 1:          
+      case 1:
+        //Serial.println("case 1");
+        #ifdef USE_DF2301Q
         checkForSound();
+        #endif          
         previousI2CMillis = currentI2CMillis;
         I2CFunction++;
       break;
 
       case 2:
-        if (eyeOpen ==true )  {checkForFace();}
+        //Serial.println("case 2");
+        if (eyeOpen ==true )  {
+        checkForFace();
+        Serial.print("VISION ");
+        Serial.print(xBlock);
+        Serial.print(" ");
+        Serial.print(yBlock);
+        Serial.println();}
         previousI2CMillis = currentI2CMillis;
         I2CFunction++;
       break;
 
       case 3:
+        //Serial.println("case 3");
         if (eyeOpen ==true )  {eyeMovement();}
         previousI2CMillis = currentI2CMillis;
         I2CFunction++;
       break;        
 
-      case 4:           
-        if (eyeOpen ==true )  {}//servoMovement();} //not actually I2C but lets use anyway.
+      case 4:
+
+        for (uint8_t i = 1; i <= 6; i++) {
+          servoPositions[i] = myArm.getPosition(i);
+        }
+
+        Serial.print("SERVOS");
+
+        for (uint8_t i = 1; i <= 6; i++) {
+          Serial.print(" ");
+          Serial.print(servoPositions[i]);
+        }
+
+        Serial.println();
+
         previousI2CMillis = currentI2CMillis;
         I2CFunction++;
+
       break;
 
       case 5:
+        //Serial.println("case 5");
        nothingInteresting(); 
        previousI2CMillis = currentI2CMillis;
        I2CFunction++;
       break;
 
       case 6:
+      //Serial.println("case 6");
        headTilt();
        previousI2CMillis = currentI2CMillis;
        I2CFunction++;
       break;
 
       case 7:
+      //Serial.println("case 7");
        talkToRaspberryPI();
        //Serial.println("! Hello raspberry PI");
        previousI2CMillis = currentI2CMillis; //not actually I2C but lets use anyway.
-       I2CFunction = 1;
+       #ifdef USE_MATRIX_LIDAR
+        I2CFunction++;
+      #else
+        I2CFunction = 1;
+      #endif
       break;
+
+      #ifdef USE_MATRIX_LIDAR
+      case 8:
+      //Serial.println("case 8");
+        if (lidarReady) {
+          if (tof.getAllData(lidarData) == 0) {
+            Serial.print("LIDAR");
+
+            for (uint8_t i = 0; i < 16; i++) {
+              Serial.print(" ");
+              Serial.print(lidarData[i]);
+            }
+
+            Serial.println();
+          }
+        }
+
+        previousI2CMillis = currentI2CMillis;
+        I2CFunction = 1;
+      break;
+      #endif
 
       default:
         // Handle unexpected values of currentFunction
