@@ -67,16 +67,16 @@ Create the project directory and virtual environment:
 ```bash
 mkdir -p ~/robot
 cd ~/robot
-python3 -m venv .venv
+python3 -m venv ~/robot-env
 ```
 
 Activate the environment:
 
 ```bash
-source .venv/bin/activate
+source ~/robot-env/bin/activate
 ```
 
-The terminal prompt should now begin with `(.venv)`.
+The terminal prompt should now begin with `(robot-env)`.
 
 Confirm that the virtual environment's Python is active:
 
@@ -87,7 +87,7 @@ which python
 Expected path:
 
 ```text
-/home/jgear/robot/.venv/bin/python
+/home/<your-user>/robot-env/bin/python
 ```
 
 Upgrade `pip` inside the environment:
@@ -122,7 +122,7 @@ Activate the project virtual environment first:
 
 ```bash
 cd ~/robot
-source .venv/bin/activate
+source ~/robot-env/bin/activate
 ```
 
 Then install the voice-chat dependencies used by the project:
@@ -178,10 +178,10 @@ Whenever you open a new terminal or SSH session:
 
 ```bash
 cd ~/robot
-source .venv/bin/activate
+source ~/robot-env/bin/activate
 ```
 
-Before installing packages, check that the prompt begins with `(.venv)`.
+Before installing packages, check that the prompt begins with `(robot-env)`.
 
 Do not use `sudo pip` or `--break-system-packages`. Install project dependencies inside the virtual environment.
 
