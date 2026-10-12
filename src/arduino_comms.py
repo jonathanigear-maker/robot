@@ -5,7 +5,7 @@ from rclpy.node import Node
 from std_msgs.msg import Int32MultiArray
 from geometry_msgs.msg import Point
 
-SERIAL_PORT = "/dev/ttyACM0"
+SERIAL_PORT = "/dev/serial/by-id/usb-Arduino_LLC_Arduino_Nano_Every_BC560AB251544E5450202020FF0E3E0D-if00"
 BAUD_RATE = 9600
 
 

@@ -25,7 +25,7 @@ need to exist in one place.
 """
 
 import threading
-
+import subprocess
 import numpy as np
 import soundfile as sf
 import sounddevice as sd
@@ -59,6 +59,21 @@ MOUTH_SCALE = 1000
 MOUTH_MAX = 255
 
 
+# ---------------------------------------------------------------------
+# INCREASE VOLUME
+# ---------------------------------------------------------------------
+def configure_audio_volume():
+    try:
+        subprocess.run(
+            ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "125%"],
+            check=True,
+            timeout=5
+        )
+        print("Speaker volume set to 125%")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as e:
+        print(f"Could not set speaker volume: {e}")
+
+configure_audio_volume()
 # ---------------------------------------------------------------------
 # MOUTH LEVEL FUNCTIONS
 # ---------------------------------------------------------------------
